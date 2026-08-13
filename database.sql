@@ -1,7 +1,8 @@
 -- ============================================================
---  ApuntelA Database Schema — PostgreSQL
+--  ApuntelA Database Schema — PostgreSQL  (v2)
 --  Generado desde el ERD: Base de datos en inglés
 --  con cardinalidades principales
+--  v2: agrega sección 5. NOTIFICATIONS & REMINDERS
 -- ============================================================
 
 -- ============================================================
@@ -266,6 +267,34 @@ CREATE TABLE study_answers (
                                is_correct        BOOLEAN,
                                answered_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+
+-- ============================================================
+-- 5. NOTIFICATIONS & REMINDERS
+-- ============================================================
+
+CREATE TABLE notifications (
+                               id           BIGSERIAL    PRIMARY KEY,
+                               user_id      BIGINT       NOT NULL REFERENCES users(id)           ON DELETE CASCADE,
+    -- FKs opcionales (0..1): la notificación puede o no estar vinculada
+                               course_id    BIGINT                REFERENCES courses(id)         ON DELETE SET NULL,
+                               note_id      BIGINT                REFERENCES notes(id)           ON DELETE SET NULL,
+                               topic_id     BIGINT                REFERENCES syllabus_topics(id) ON DELETE SET NULL,
+    -- Contenido
+                               type         VARCHAR(50)  NOT NULL,          -- e.g. 'reminder', 'alert', 'badge'
+                               title        VARCHAR(255) NOT NULL,
+                               message      TEXT,
+                               is_read      BOOLEAN      NOT NULL DEFAULT FALSE,
+    -- Programación y envío
+                               scheduled_at TIMESTAMPTZ,                    -- NULL = envío inmediato
+                               sent_at      TIMESTAMPTZ,                    -- NULL = pendiente de envío
+                               created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+COMMENT ON TABLE notifications IS 'Notificaciones y recordatorios para el usuario, opcionalmente vinculadas a curso, apunte o tema';
+COMMENT ON COLUMN notifications.type         IS 'Tipo de notificación: reminder, alert, badge, system, etc.';
+COMMENT ON COLUMN notifications.scheduled_at IS 'Cuándo debe enviarse; NULL = inmediato';
+COMMENT ON COLUMN notifications.sent_at      IS 'Cuándo fue efectivamente enviado; NULL = aún pendiente';
 
 
 -- ============================================================
