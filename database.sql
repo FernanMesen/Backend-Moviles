@@ -391,6 +391,7 @@ CREATE TRIGGER set_updated_at_note_ratings
 -- COMMENTS
 -- ============================================================
 
+
 COMMENT ON TABLE users                IS 'Usuarios del sistema';
 COMMENT ON TABLE roles                IS 'Roles asignables a usuarios';
 COMMENT ON TABLE permissions          IS 'Permisos granulares del sistema';
