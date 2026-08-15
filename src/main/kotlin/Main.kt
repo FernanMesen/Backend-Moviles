@@ -1,16 +1,55 @@
-package BACKEND
+import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.*
+import io.ktor.server.application.*
+import io.ktor.server.engine.*
+import io.ktor.server.netty.*
+import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
+import kotlinx.serialization.Serializable
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
+@Serializable
+data class TestResponse(
+    val message: String,
+    val status: String
+)
+
 fun main() {
-    val name = "Kotlin"
-    //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-    // to see how IntelliJ IDEA suggests fixing it.
-    println("Hello, " + name + "!")
+    embeddedServer(
+        factory = Netty,
+        host = "0.0.0.0",
+        port = 8080
+    ) {
+        configureSerialization()
+        configureRouting()
+    }.start(wait = true)
+}
 
-    for (i in 1..5) {
-        //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-        // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-        println("i = $i")
+fun Application.configureSerialization() {
+    install(ContentNegotiation) {
+        json()
+    }
+}
+
+fun Application.configureRouting() {
+
+    routing {
+
+        get("/") {
+            call.respondText(
+                text = "Backend ApuntelA funcionando",
+                contentType = ContentType.Text.Plain,
+                status = HttpStatusCode.OK
+            )
+        }
+
+        get("/api/test") {
+            call.respond(
+                TestResponse(
+                    message = "Backend funcionando correctamente",
+                    status = "OK"
+                )
+            )
+        }
     }
 }
