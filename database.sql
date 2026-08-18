@@ -1,10 +1,8 @@
 -- ============================================================
---  ApuntelA Database Schema — PostgreSQL  (v3)
+--  ApuntelA Database Schema — PostgreSQL  (v4)
 --  Generado desde el ERD: Base de datos en inglés
 --  con cardinalidades principales
 --  v2: agrega sección 5. NOTIFICATIONS & REMINDERS
---  v3: sección 4 (PRACTICE & REINFORCEMENT) rediseñada
---      para guardar quizzes generados por IA como JSONB
 -- ============================================================
 
 -- ============================================================
@@ -23,7 +21,9 @@ CREATE TABLE users (
                        email       VARCHAR(255) NOT NULL UNIQUE,
                        status      VARCHAR(50)  NOT NULL DEFAULT 'active',
                        created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-                       updated_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+                       updated_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+                       CONSTRAINT chk_users_email_format CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'),
+                       CONSTRAINT chk_users_status       CHECK (status IN ('active','inactive','suspended','banned'))
 );
 
 CREATE TABLE roles (
@@ -53,19 +53,30 @@ CREATE TABLE role_permissions (
 );
 
 CREATE TABLE auth_accounts (
-                               id               BIGSERIAL    PRIMARY KEY,
-                               user_id          BIGINT       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                               provider         VARCHAR(50)  NOT NULL,
-                               provider_user_id VARCHAR(255),
-                               password_hash    VARCHAR(255)
+                               id                     BIGSERIAL    PRIMARY KEY,
+                               user_id                BIGINT       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                               provider               VARCHAR(50)  NOT NULL,
+                               provider_user_id       VARCHAR(255),
+                               password_hash          VARCHAR(255),
+                               failed_login_attempts  INT          NOT NULL DEFAULT 0,
+                               locked_until           TIMESTAMPTZ,             -- NULL = cuenta no bloqueada
+                               last_login_at          TIMESTAMPTZ,
+                               CONSTRAINT chk_auth_provider          CHECK (provider IN ('local','google','microsoft','github')),
+                               CONSTRAINT chk_auth_password_hash_len CHECK (password_hash IS NULL OR length(password_hash) >= 60),
+                               CONSTRAINT chk_auth_failed_attempts   CHECK (failed_login_attempts >= 0)
 );
+
+COMMENT ON COLUMN auth_accounts.password_hash IS 'Hash bcrypt/argon2 — nunca almacenar contraseñas en texto plano; longitud mínima 60 (bcrypt)';
+COMMENT ON COLUMN auth_accounts.failed_login_attempts IS 'Contador de intentos fallidos consecutivos; se resetea a 0 en un login exitoso';
+COMMENT ON COLUMN auth_accounts.locked_until IS 'Cuenta bloqueada hasta esta fecha tras superar el máximo de intentos fallidos (ver trigger lock_account_after_failed_attempts)';
 
 CREATE TABLE password_reset_tokens (
                                        id         BIGSERIAL    PRIMARY KEY,
                                        user_id    BIGINT       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                                        token_hash VARCHAR(255) NOT NULL,
                                        expires_at TIMESTAMPTZ  NOT NULL,
-                                       used_at    TIMESTAMPTZ
+                                       used_at    TIMESTAMPTZ,
+                                       CONSTRAINT chk_prt_token_hash_len CHECK (length(token_hash) >= 32)
 );
 
 -- 0..1 : 1  (optional one-to-one)
@@ -298,6 +309,9 @@ CREATE INDEX idx_users_status          ON users(status);
 CREATE INDEX idx_auth_accounts_user_id ON auth_accounts(user_id);
 CREATE INDEX idx_auth_accounts_provider ON auth_accounts(provider, provider_user_id);
 
+-- auth_accounts (seguridad)
+CREATE INDEX idx_auth_accounts_locked_until ON auth_accounts(locked_until);
+
 -- password_reset_tokens
 CREATE INDEX idx_prt_user_id           ON password_reset_tokens(user_id);
 CREATE INDEX idx_prt_expires_at        ON password_reset_tokens(expires_at);
@@ -370,6 +384,147 @@ CREATE TRIGGER set_updated_at_notes
 CREATE TRIGGER set_updated_at_note_ratings
     BEFORE UPDATE ON note_ratings
     FOR EACH ROW EXECUTE FUNCTION trg_set_updated_at();
+
+
+-- ============================================================
+-- 6. SECURITY: PROTECCIÓN CONTRA FUERZA BRUTA
+-- ============================================================
+
+
+CREATE OR REPLACE FUNCTION trg_lock_account_on_failed_attempts()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+    IF NEW.failed_login_attempts >= 5 THEN
+        NEW.locked_until := NOW() + INTERVAL '15 minutes';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER lock_account_after_failed_attempts
+    BEFORE UPDATE OF failed_login_attempts ON auth_accounts
+    FOR EACH ROW
+    WHEN (NEW.failed_login_attempts > OLD.failed_login_attempts)
+    EXECUTE FUNCTION trg_lock_account_on_failed_attempts();
+
+
+-- ============================================================
+-- 6.1 SECURITY: ROW LEVEL SECURITY (RLS)
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION current_app_user_id()
+RETURNS BIGINT LANGUAGE sql STABLE AS $$
+    SELECT NULLIF(current_setting('app.current_user_id', true), '')::BIGINT;
+$$;
+
+CREATE OR REPLACE FUNCTION is_admin(check_user_id BIGINT)
+RETURNS BOOLEAN LANGUAGE sql STABLE AS $$
+    SELECT EXISTS (
+        SELECT 1
+        FROM user_roles ur
+        JOIN roles r ON r.id = ur.role_id
+        WHERE ur.user_id = check_user_id
+          AND r.name = 'admin'
+    );
+$$;
+
+-- users: cada usuario ve/edita su propia fila; admins ven/editan todas
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY users_select_own_or_admin ON users
+    FOR SELECT
+    USING (id = current_app_user_id() OR is_admin(current_app_user_id()));
+
+CREATE POLICY users_update_own_or_admin ON users
+    FOR UPDATE
+    USING (id = current_app_user_id() OR is_admin(current_app_user_id()))
+    WITH CHECK (id = current_app_user_id() OR is_admin(current_app_user_id()));
+
+-- auth_accounts: solo el dueño de la cuenta o un admin
+ALTER TABLE auth_accounts ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY auth_accounts_owner_or_admin ON auth_accounts
+    FOR ALL
+    USING (user_id = current_app_user_id() OR is_admin(current_app_user_id()))
+    WITH CHECK (user_id = current_app_user_id() OR is_admin(current_app_user_id()));
+
+-- password_reset_tokens: solo el dueño del token o un admin
+ALTER TABLE password_reset_tokens ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY prt_owner_or_admin ON password_reset_tokens
+    FOR ALL
+    USING (user_id = current_app_user_id() OR is_admin(current_app_user_id()))
+    WITH CHECK (user_id = current_app_user_id() OR is_admin(current_app_user_id()));
+
+-- user_preferences: solo el dueño de las preferencias o un admin
+ALTER TABLE user_preferences ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY user_prefs_owner_or_admin ON user_preferences
+    FOR ALL
+    USING (user_id = current_app_user_id() OR is_admin(current_app_user_id()))
+    WITH CHECK (user_id = current_app_user_id() OR is_admin(current_app_user_id()));
+
+-- roles / permissions: lectura pública (autenticados), escritura solo admin
+ALTER TABLE roles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY roles_read_all ON roles
+    FOR SELECT
+    USING (true);
+
+CREATE POLICY roles_admin_write ON roles
+    FOR INSERT
+    WITH CHECK (is_admin(current_app_user_id()));
+
+CREATE POLICY roles_admin_update ON roles
+    FOR UPDATE
+    USING (is_admin(current_app_user_id()))
+    WITH CHECK (is_admin(current_app_user_id()));
+
+CREATE POLICY roles_admin_delete ON roles
+    FOR DELETE
+    USING (is_admin(current_app_user_id()));
+
+ALTER TABLE permissions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY permissions_read_all ON permissions
+    FOR SELECT
+    USING (true);
+
+CREATE POLICY permissions_admin_write ON permissions
+    FOR INSERT
+    WITH CHECK (is_admin(current_app_user_id()));
+
+CREATE POLICY permissions_admin_update ON permissions
+    FOR UPDATE
+    USING (is_admin(current_app_user_id()))
+    WITH CHECK (is_admin(current_app_user_id()));
+
+CREATE POLICY permissions_admin_delete ON permissions
+    FOR DELETE
+    USING (is_admin(current_app_user_id()));
+
+-- user_roles: el usuario ve sus propios roles; solo admin asigna/quita roles
+ALTER TABLE user_roles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY user_roles_read_own_or_admin ON user_roles
+    FOR SELECT
+    USING (user_id = current_app_user_id() OR is_admin(current_app_user_id()));
+
+CREATE POLICY user_roles_admin_write ON user_roles
+    FOR INSERT
+    WITH CHECK (is_admin(current_app_user_id()));
+
+CREATE POLICY user_roles_admin_delete ON user_roles
+    FOR DELETE
+    USING (is_admin(current_app_user_id()));
+
+-- role_permissions: solo admin gestiona qué permisos tiene cada rol
+ALTER TABLE role_permissions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY role_permissions_admin_all ON role_permissions
+    FOR ALL
+    USING (is_admin(current_app_user_id()))
+    WITH CHECK (is_admin(current_app_user_id()));
 
 
 -- ============================================================
