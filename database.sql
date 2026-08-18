@@ -1,8 +1,10 @@
 -- ============================================================
---  ApuntelA Database Schema — PostgreSQL  (v2)
+--  ApuntelA Database Schema — PostgreSQL  (v3)
 --  Generado desde el ERD: Base de datos en inglés
 --  con cardinalidades principales
 --  v2: agrega sección 5. NOTIFICATIONS & REMINDERS
+--  v3: sección 4 (PRACTICE & REINFORCEMENT) rediseñada
+--      para guardar quizzes generados por IA como JSONB
 -- ============================================================
 
 -- ============================================================
@@ -220,53 +222,41 @@ CREATE TABLE note_adaptations (
 
 
 -- ============================================================
--- 4. PRACTICE & REINFORCEMENT
+-- 4. PRACTICE & REINFORCEMENT  (v3 — quizzes en JSON)
 -- ============================================================
 
-CREATE TABLE study_sessions (
-                                id                    BIGSERIAL    PRIMARY KEY,
-                                user_id               BIGINT       NOT NULL REFERENCES users(id)   ON DELETE CASCADE,
-                                course_id             BIGINT       NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
-                                difficulty            VARCHAR(50),
-                                question_type         VARCHAR(50),
-                                mode                  VARCHAR(50),
-                                weak_topics_only      BOOLEAN      NOT NULL DEFAULT FALSE,
-                                previous_mistakes_only BOOLEAN     NOT NULL DEFAULT FALSE,
-                                timer_enabled         BOOLEAN      NOT NULL DEFAULT FALSE,
-                                score                 NUMERIC(5,2),
-                                started_at            TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-                                completed_at          TIMESTAMPTZ
+CREATE TABLE quizzes (
+                         id                BIGSERIAL    PRIMARY KEY,
+                         user_id           BIGINT       NOT NULL REFERENCES users(id)   ON DELETE CASCADE,
+                         course_id         BIGINT       NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+                         note_id           BIGINT                REFERENCES notes(id)           ON DELETE SET NULL,   -- NULL allowed
+                         topic_id          BIGINT                REFERENCES syllabus_topics(id) ON DELETE SET NULL,   -- NULL allowed
+                         difficulty        VARCHAR(50),
+                         mode              VARCHAR(50),
+                         weak_topics_only  BOOLEAN      NOT NULL DEFAULT FALSE,
+                         previous_mistakes_only BOOLEAN NOT NULL DEFAULT FALSE,
+                         timer_enabled     BOOLEAN      NOT NULL DEFAULT FALSE,
+                         ai_model          VARCHAR(100),
+                         content           JSONB        NOT NULL,
+                         score             NUMERIC(5,2),
+                         started_at        TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+                         completed_at      TIMESTAMPTZ
 );
 
-CREATE TABLE study_questions (
-                                 id             BIGSERIAL    PRIMARY KEY,
-                                 session_id     BIGINT       NOT NULL  REFERENCES study_sessions(id)   ON DELETE CASCADE,
-                                 topic_id       BIGINT                 REFERENCES syllabus_topics(id)  ON DELETE SET NULL,   -- NULL allowed
-                                 note_id        BIGINT                 REFERENCES notes(id)            ON DELETE SET NULL,   -- NULL allowed
-                                 question_type  VARCHAR(50)  NOT NULL,
-                                 question_text  TEXT         NOT NULL,
-                                 correct_answer TEXT,
-                                 explanation    TEXT,
-                                 position       INT          NOT NULL DEFAULT 0
+CREATE TABLE quiz_answers (
+                              id                 BIGSERIAL    PRIMARY KEY,
+                              quiz_id            BIGINT       NOT NULL REFERENCES quizzes(id) ON DELETE CASCADE,
+                              user_id            BIGINT       NOT NULL REFERENCES users(id)  ON DELETE CASCADE,
+                              question_id        VARCHAR(50)  NOT NULL,
+                              selected_option_id VARCHAR(50),   -- NULL allowed
+                              text_answer        TEXT,
+                              is_correct         BOOLEAN,
+                              answered_at        TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE question_options (
-                                  id          BIGSERIAL    PRIMARY KEY,
-                                  question_id BIGINT       NOT NULL REFERENCES study_questions(id) ON DELETE CASCADE,
-                                  option_text TEXT         NOT NULL,
-                                  is_correct  BOOLEAN      NOT NULL DEFAULT FALSE,
-                                  position    INT          NOT NULL DEFAULT 0
-);
-
-CREATE TABLE study_answers (
-                               id                BIGSERIAL   PRIMARY KEY,
-                               question_id       BIGINT      NOT NULL REFERENCES study_questions(id) ON DELETE CASCADE,
-                               user_id           BIGINT      NOT NULL REFERENCES users(id)           ON DELETE CASCADE,
-                               selected_option_id BIGINT              REFERENCES question_options(id) ON DELETE SET NULL,  -- NULL allowed
-                               text_answer       TEXT,
-                               is_correct        BOOLEAN,
-                               answered_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+COMMENT ON TABLE quizzes IS 'Quizzes generados por IA; content guarda preguntas/opciones como JSONB';
+COMMENT ON COLUMN quizzes.content IS 'Estructura: {"questions":[{"id","type","text","options":[{"id","text","correct"}],"explanation"}]}';
+COMMENT ON TABLE quiz_answers IS 'Respuestas del usuario a un quiz; question_id/selected_option_id referencian ids dentro del JSON de quizzes.content';
 
 
 -- ============================================================
@@ -344,22 +334,17 @@ CREATE INDEX idx_recog_status          ON recognition_reports(status);
 CREATE INDEX idx_nadapt_note_id        ON note_adaptations(note_id);
 CREATE INDEX idx_nadapt_user_id        ON note_adaptations(user_id);
 
--- study_sessions
-CREATE INDEX idx_ss_user_id            ON study_sessions(user_id);
-CREATE INDEX idx_ss_course_id          ON study_sessions(course_id);
-CREATE INDEX idx_ss_completed_at       ON study_sessions(completed_at);
+-- quizzes
+CREATE INDEX idx_quizzes_user_id       ON quizzes(user_id);
+CREATE INDEX idx_quizzes_course_id     ON quizzes(course_id);
+CREATE INDEX idx_quizzes_note_id       ON quizzes(note_id);
+CREATE INDEX idx_quizzes_topic_id      ON quizzes(topic_id);
+CREATE INDEX idx_quizzes_completed_at  ON quizzes(completed_at);
+CREATE INDEX idx_quizzes_content_gin   ON quizzes USING gin (content);
 
--- study_questions
-CREATE INDEX idx_sq_session_id         ON study_questions(session_id);
-CREATE INDEX idx_sq_topic_id           ON study_questions(topic_id);
-CREATE INDEX idx_sq_note_id            ON study_questions(note_id);
-
--- question_options
-CREATE INDEX idx_qo_question_id        ON question_options(question_id);
-
--- study_answers
-CREATE INDEX idx_sa_question_id        ON study_answers(question_id);
-CREATE INDEX idx_sa_user_id            ON study_answers(user_id);
+-- quiz_answers
+CREATE INDEX idx_quiz_answers_quiz_id  ON quiz_answers(quiz_id);
+CREATE INDEX idx_quiz_answers_user_id  ON quiz_answers(user_id);
 
 
 -- ============================================================
@@ -391,7 +376,6 @@ CREATE TRIGGER set_updated_at_note_ratings
 -- COMMENTS
 -- ============================================================
 
-
 COMMENT ON TABLE users                IS 'Usuarios del sistema';
 COMMENT ON TABLE roles                IS 'Roles asignables a usuarios';
 COMMENT ON TABLE permissions          IS 'Permisos granulares del sistema';
@@ -415,9 +399,4 @@ COMMENT ON TABLE note_ratings         IS 'Calificaciones de apuntes (1-5)';
 COMMENT ON TABLE recognition_reports  IS 'Reportes de problemas en el OCR de apuntes';
 COMMENT ON TABLE note_topic_coverage  IS 'Cobertura de temas del programa por apunte (IA)';
 COMMENT ON TABLE user_topic_progress  IS 'Progreso de dominio por tema y usuario';
-COMMENT ON TABLE note_adaptations     IS 'Adaptaciones de apuntes generadas por IA';
-
-COMMENT ON TABLE study_sessions       IS 'Sesiones de práctica/estudio por usuario';
-COMMENT ON TABLE study_questions      IS 'Preguntas generadas dentro de una sesión';
-COMMENT ON TABLE question_options     IS 'Opciones de respuesta para preguntas de opción múltiple';
-COMMENT ON TABLE study_answers        IS 'Respuestas dadas por el usuario en cada sesión';
+COMMENT ON TABLE note_adaptations     IS 'Adaptaciones de apuntes generadas por IA (resúmenes, mapas conceptuales, flashcards, audio, etc.)';
