@@ -1,0 +1,9 @@
+# Correr con:  SPRING_PROFILES_ACTIVE=postgres ./gradlew bootRun
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/apunteia}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+  h2:
+    console:
+      enabled: false

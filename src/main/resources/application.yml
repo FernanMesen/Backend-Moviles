@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: BackendApunteAI
+  datasource:
+    # H2 en archivo local: no hay que instalar nada para desarrollar
+    url: jdbc:h2:file:./data/apunteia;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+  h2:
+    console:
+      enabled: true      # http://localhost:8080/h2-console (JDBC URL de arriba, usuario sa)
+      path: /h2-console
+
+server:
+  port: 8080
