@@ -2,10 +2,11 @@ package ApunteIA.BackEnd.seed
 
 import ApunteIA.BackEnd.entity.Assessment
 import ApunteIA.BackEnd.entity.AssessmentAttempt
+import ApunteIA.BackEnd.entity.AssessmentDifficulty
+import ApunteIA.BackEnd.entity.AssessmentType
 import ApunteIA.BackEnd.entity.Course
 import ApunteIA.BackEnd.entity.QuestionData
 import ApunteIA.BackEnd.entity.User
-import ApunteIA.BackEnd.entity.UserAnswerData
 import ApunteIA.BackEnd.repository.AssessmentAttemptRepository
 import ApunteIA.BackEnd.repository.AssessmentRepository
 import ApunteIA.BackEnd.repository.CourseRepository
@@ -110,13 +111,18 @@ class AssessmentSeeder(
         description: String,
         durationMinutes: Int,
         questions: List<QuestionData>,
+        type: AssessmentType = AssessmentType.QUIZ,
+        difficulty: AssessmentDifficulty = AssessmentDifficulty.MEDIUM,
     ): Assessment =
         assessmentRepository.findByTitle(title) ?: assessmentRepository.save(
             Assessment(
                 title = title,
                 description = description,
                 durationMinutes = durationMinutes,
+                type = type,
+                difficulty = difficulty,
                 course = course,
+                createdBy = user("profe@apunteia.com"),
                 questions = questions,
             )
         )
@@ -130,22 +136,8 @@ class AssessmentSeeder(
     ) {
         if (attemptRepository.existsByUser_IdAndAssessment_IdAndCompletedAt(user.id!!, assessment.id!!, completedAt)) return
 
-        val answers = assessment.questions.mapIndexed { index, question ->
-            UserAnswerData(
-                questionIndex = index,
-                selectedOptionIndex = selected[index],
-                correct = selected[index] == question.correctOptionIndex,
-            )
-        }
         attemptRepository.save(
-            AssessmentAttempt(
-                assessment = assessment,
-                user = user,
-                scorePercent = answers.count { it.correct } * 100 / assessment.questions.size,
-                completedAt = completedAt,
-                durationSeconds = durationSeconds,
-                userAnswers = answers,
-            )
+            AssessmentAttempt.register(assessment, user, selected, durationSeconds, completedAt)
         )
     }
 }

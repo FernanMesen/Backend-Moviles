@@ -21,6 +21,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import java.math.BigDecimal
 
 /** Pruebas de persistencia de evaluaciones e intentos, incluido el almacenamiento JSON. */
 @DataJpaTest
@@ -69,11 +70,12 @@ class AssessmentRepositoryTest @Autowired constructor(
         entityManager.clear()
     }
 
-    private fun attempt(completedAt: String, score: Int = 50, assessment: Assessment = this.assessment) =
+    private fun attempt(completedAt: String, score: BigDecimal = BigDecimal("50.00"), assessment: Assessment = this.assessment) =
         AssessmentAttempt(
             assessment = assessment,
             user = user,
-            scorePercent = score,
+            score = score,
+            startedAt = Instant.parse(completedAt).minusSeconds(120L),
             completedAt = Instant.parse(completedAt),
             durationSeconds = 120L,
             userAnswers = listOf(
@@ -126,9 +128,10 @@ class AssessmentRepositoryTest @Autowired constructor(
 
         assertEquals(user.id, found.user.id)
         assertEquals(assessment.id, found.assessment.id)
-        assertEquals(50, found.scorePercent)
+        assertEquals(BigDecimal("50.00"), found.score)
         assertEquals(120L, found.durationSeconds)
         assertEquals(Instant.parse("2026-09-20T15:30:00Z"), found.completedAt)
+        assertEquals(Instant.parse("2026-09-20T15:28:00Z"), found.startedAt)
         assertEquals(2, found.userAnswers.size)
         assertTrue(found.userAnswers[0].correct)
         assertEquals(2, found.userAnswers[0].selectedOptionIndex)
