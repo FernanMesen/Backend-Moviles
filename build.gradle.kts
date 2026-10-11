@@ -23,6 +23,7 @@ dependencies {
     // Versiones alineadas por el BOM de Spring Boot
     implementation(platform(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES))
 
+    implementation("org.springframework.boot:spring-boot-starter-web")        // Lab 6: capa WebAPI (Tomcat + MVC + Jackson)
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.security:spring-security-crypto") // solo BCrypt, sin bloquear endpoints
@@ -49,6 +50,16 @@ allOpen {
     annotation("jakarta.persistence.Entity")
     annotation("jakarta.persistence.MappedSuperclass")
     annotation("jakarta.persistence.Embeddable")
+}
+
+// Nombre fijo del jar ejecutable: lo usa el Dockerfile
+tasks.bootJar {
+    archiveFileName.set("app.jar")
+}
+
+// No se necesita el jar "plain" (sin dependencias)
+tasks.jar {
+    enabled = false
 }
 
 tasks.test {
