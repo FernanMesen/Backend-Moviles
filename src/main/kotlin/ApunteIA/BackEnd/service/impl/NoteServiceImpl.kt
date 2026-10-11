@@ -1,7 +1,8 @@
 package ApunteIA.BackEnd.service.impl
 
 import ApunteIA.BackEnd.dto.note.NoteResponse
-import ApunteIA.BackEnd.dto.note.SaveNoteRequest
+import ApunteIA.BackEnd.dto.note.CreateNoteRequest
+import ApunteIA.BackEnd.dto.note.UpdateNoteRequest
 import ApunteIA.BackEnd.entity.Note
 import ApunteIA.BackEnd.entity.ProcessingStatus
 import ApunteIA.BackEnd.exception.ConflictException
@@ -39,16 +40,16 @@ class NoteServiceImpl(
     override fun findById(id: Long): NoteResponse = noteMapper.toResponse(findNoteOrThrow(id))
 
     @Transactional
-    override fun create(request: SaveNoteRequest): NoteResponse {
-        val (user, course) = findRelations(request)
+    override fun create(request: CreateNoteRequest): NoteResponse {
+        val (user, course) = findRelations(request.userId, request.courseId)
         val note = noteMapper.toEntity(request, user, course)
         return noteMapper.toResponse(noteRepository.saveAndFlush(note))
     }
 
     @Transactional
-    override fun update(id: Long, request: SaveNoteRequest): NoteResponse {
+    override fun update(id: Long, request: UpdateNoteRequest): NoteResponse {
         val note = findNoteOrThrow(id)
-        val (user, course) = findRelations(request)
+        val (user, course) = findRelations(request.userId, request.courseId)
         note.title = request.title.trim()
         note.content = request.content.trim()
         note.user = user
@@ -80,9 +81,9 @@ class NoteServiceImpl(
     private fun findNoteOrThrow(id: Long): Note = noteRepository.findById(id)
         .orElseThrow { NotFoundException("No existe una nota con id $id") }
 
-    private fun findRelations(request: SaveNoteRequest) =
-        userRepository.findById(requireNotNull(request.userId))
-            .orElseThrow { NotFoundException("No existe un usuario con id ${request.userId}") } to
-            courseRepository.findById(requireNotNull(request.courseId))
-                .orElseThrow { NotFoundException("No existe un curso con id ${request.courseId}") }
+    private fun findRelations(userId: Long?, courseId: Long?) =
+        userRepository.findById(requireNotNull(userId))
+            .orElseThrow { NotFoundException("No existe un usuario con id $userId") } to
+            courseRepository.findById(requireNotNull(courseId))
+                .orElseThrow { NotFoundException("No existe un curso con id $courseId") }
 }

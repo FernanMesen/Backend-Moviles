@@ -6,8 +6,25 @@ import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Positive
 import java.time.LocalDateTime
 
-/** Datos necesarios para crear o editar una nota. El estado se controla por separado. */
-data class SaveNoteRequest(
+/** Datos necesarios para crear una nota. El estado inicial siempre es PENDING. */
+data class CreateNoteRequest(
+    @field:NotBlank(message = "El título es obligatorio")
+    val title: String = "",
+
+    @field:NotBlank(message = "El contenido es obligatorio")
+    val content: String = "",
+
+    @field:NotNull(message = "El usuario es obligatorio")
+    @field:Positive(message = "El id del usuario debe ser positivo")
+    val userId: Long? = null,
+
+    @field:NotNull(message = "El curso es obligatorio")
+    @field:Positive(message = "El id del curso debe ser positivo")
+    val courseId: Long? = null,
+)
+
+/** Datos editables de una nota. El estado se controla por separado. */
+data class UpdateNoteRequest(
     @field:NotBlank(message = "El título es obligatorio")
     val title: String = "",
 

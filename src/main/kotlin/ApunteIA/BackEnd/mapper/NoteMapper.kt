@@ -1,7 +1,7 @@
 package ApunteIA.BackEnd.mapper
 
 import ApunteIA.BackEnd.dto.note.NoteResponse
-import ApunteIA.BackEnd.dto.note.SaveNoteRequest
+import ApunteIA.BackEnd.dto.note.CreateNoteRequest
 import ApunteIA.BackEnd.entity.Course
 import ApunteIA.BackEnd.entity.Note
 import ApunteIA.BackEnd.entity.User
@@ -22,7 +22,7 @@ class NoteMapper {
         updatedAt = note.updatedAt,
     )
 
-    fun toEntity(request: SaveNoteRequest, user: User, course: Course) = Note(
+    fun toEntity(request: CreateNoteRequest, user: User, course: Course) = Note(
         title = request.title.trim(),
         content = request.content.trim(),
         user = user,
