@@ -46,3 +46,5 @@ bin/
 
 ### H2 local ###
 data/
+### Docker ###
+.env

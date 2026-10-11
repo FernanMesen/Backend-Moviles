@@ -1,0 +1,11 @@
+.git
+.gradle
+.idea
+.kotlin
+build
+out
+data
+*.iml
+.env
+postman/
+README.md
