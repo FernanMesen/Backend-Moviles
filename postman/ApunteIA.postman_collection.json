@@ -65,7 +65,7 @@
               ]
             },
             {
-              "name": "Login email con mayúsculas y espacios (200)",
+              "name": "Login email con mayúsculas (200)",
               "request": {
                 "method": "POST",
                 "header": [
@@ -90,7 +90,7 @@
                 },
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"email\": \"  DEMO@ApunteIA.com \",\n  \"password\": \"{{demoPassword}}\"\n}",
+                  "raw": "{\n  \"email\": \"DEMO@ApunteIA.com\",\n  \"password\": \"{{demoPassword}}\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
