@@ -1,0 +1,19 @@
+$kind: http-request
+description: El email se normaliza (trim + minúsculas).
+url: "{{baseUrl}}/auth/login"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "DEMO@ApunteIA.com",
+      "password": "{{demoPassword}}"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test("Status code es 200", () => pm.response.to.have.status(200));
+    language: text/javascript
+order: 2000

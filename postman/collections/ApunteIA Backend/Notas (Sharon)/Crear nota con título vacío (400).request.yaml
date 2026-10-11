@@ -1,0 +1,23 @@
+$kind: http-request
+url: "{{baseUrl}}/notes"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "",
+      "content": "Contenido de prueba",
+      "userId": {{noteUserId}},
+      "courseId": {{noteCourseId}}
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 400", () => pm.response.to.have.status(400));
+      const error = pm.response.json();
+      pm.test("Error de validación con formato común", () => { pm.expect(error.status).to.eql(400); pm.expect(error).to.have.property("fieldErrors"); });
+    language: text/javascript
+order: 2000

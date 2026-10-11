@@ -1,0 +1,31 @@
+$kind: http-request
+url: "{{baseUrl}}/auth/register"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "fullName": "Estudiante Postman",
+      "email": "{{newEmail}}",
+      "password": "123456"
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      // Email único en cada corrida para que el registro no choque con el 409
+      pm.collectionVariables.set("newEmail", `postman.${Date.now()}@apunteia.com`);
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 201", () => pm.response.to.have.status(201));
+      pm.test("Responde JSON", () => pm.expect(pm.response.headers.get("Content-Type")).to.include("application/json"));
+      pm.test("No expone password_hash", () => { const t = pm.response.text(); pm.expect(t).to.not.include("passwordHash"); pm.expect(t).to.not.include("password_hash"); });
+      const body = pm.response.json();
+      pm.test("Header Location apunta al nuevo usuario", () => pm.expect(pm.response.headers.get("Location")).to.include("/users/" + body.id));
+      pm.test("Se crea como STUDENT / BASIC / ACTIVE / LOCAL", () => { pm.expect(body.role).to.eql("STUDENT"); pm.expect(body.privilege).to.eql("BASIC"); pm.expect(body.status).to.eql("ACTIVE"); pm.expect(body.authProvider).to.eql("LOCAL"); });
+      pm.collectionVariables.set("newUserId", body.id);
+    language: text/javascript
+order: 10000

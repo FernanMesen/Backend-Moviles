@@ -1,0 +1,16 @@
+$kind: http-request
+url: "{{baseUrl}}/notes/{{noteId}}/status"
+method: PATCH
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: '{ "status": "PROCESSING" }'
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 200", () => pm.response.to.have.status(200));
+      pm.test("El nuevo estado es PROCESSING", () => pm.expect(pm.response.json().processingStatus).to.eql("PROCESSING"));
+    language: text/javascript
+order: 7000

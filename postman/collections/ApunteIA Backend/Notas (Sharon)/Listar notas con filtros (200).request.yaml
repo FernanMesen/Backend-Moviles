@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{baseUrl}}/notes?userId={{noteUserId}}&courseId={{noteCourseId}}&status=PENDING"
+method: GET
+headers:
+  Accept: application/json
+queryParams:
+  userId: "{{noteUserId}}"
+  courseId: "{{noteCourseId}}"
+  status: PENDING
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 200", () => pm.response.to.have.status(200));
+      const notes = pm.response.json();
+      pm.test("Incluye la nota creada", () => pm.expect(notes.some(note => String(note.id) === String(pm.collectionVariables.get("noteId")))).to.eql(true));
+    language: text/javascript
+order: 4000

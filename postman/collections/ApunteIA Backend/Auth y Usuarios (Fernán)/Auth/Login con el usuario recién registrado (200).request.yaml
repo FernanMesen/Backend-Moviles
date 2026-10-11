@@ -1,0 +1,20 @@
+$kind: http-request
+url: "{{baseUrl}}/auth/login"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{newEmail}}",
+      "password": "123456"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 200", () => pm.response.to.have.status(200));
+      pm.test("userName es el nombre registrado", () => pm.expect(pm.response.json().userName).to.eql("Estudiante Postman"));
+    language: text/javascript
+order: 11000

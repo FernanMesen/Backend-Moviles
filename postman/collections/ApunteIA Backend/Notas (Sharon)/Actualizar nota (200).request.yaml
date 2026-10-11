@@ -1,0 +1,22 @@
+$kind: http-request
+url: "{{baseUrl}}/notes/{{noteId}}"
+method: PUT
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "Nota Postman actualizada",
+      "content": "Contenido actualizado desde la colección.",
+      "userId": {{noteUserId}},
+      "courseId": {{noteCourseId}}
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 200", () => pm.response.to.have.status(200));
+      pm.test("Devuelve el contenido actualizado", () => pm.expect(pm.response.json().title).to.eql("Nota Postman actualizada"));
+    language: text/javascript
+order: 6000

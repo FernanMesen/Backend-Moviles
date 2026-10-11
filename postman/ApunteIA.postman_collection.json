@@ -1379,6 +1379,375 @@
           ]
         }
       ]
+    },
+    {
+        "name":  "Notas (Sharon)",
+        "description":  "CRUD y filtros de notas, validación de solicitud, códigos HTTP y transiciones del estado de procesamiento. Ejecutar en orden de arriba hacia abajo.",
+        "item":  [
+                     {
+                         "name":  "Preparar IDs desde notas de ejemplo (200)",
+                         "request":  {
+                                         "method":  "GET",
+                                         "header":  [
+                                                        {
+                                                            "key":  "Accept",
+                                                            "value":  "application/json"
+                                                        }
+                                                    ],
+                                         "url":  "{{baseUrl}}/notes"
+                                     },
+                         "description":  "Toma userId y courseId de los datos semilla; ejecutar antes de las demás peticiones.",
+                         "event":  [
+                                       {
+                                           "script":  {
+                                                          "exec":  [
+                                                                       "pm.test(\"Status code es 200\", () =\u003e pm.response.to.have.status(200));",
+                                                                       "const notes = pm.response.json();",
+                                                                       "const sample = notes.find(note =\u003e note.courseCode === \"EIF411\");",
+                                                                       "pm.test(\"Existe la nota sembrada del curso EIF411\", () =\u003e pm.expect(sample).to.exist);",
+                                                                       "pm.collectionVariables.set(\"noteUserId\", sample.userId);",
+                                                                       "pm.collectionVariables.set(\"noteCourseId\", sample.courseId);"
+                                                                   ],
+                                                          "type":  "text/javascript"
+                                                      },
+                                           "listen":  "test"
+                                       }
+                                   ]
+                     },
+                     {
+                         "name":  "Crear nota con título vacío (400)",
+                         "request":  {
+                                         "method":  "POST",
+                                         "header":  [
+                                                        {
+                                                            "key":  "Accept",
+                                                            "value":  "application/json"
+                                                        },
+                                                        {
+                                                            "key":  "Content-Type",
+                                                            "value":  "application/json"
+                                                        }
+                                                    ],
+                                         "url":  "{{baseUrl}}/notes",
+                                         "body":  {
+                                                      "raw":  "{\n  \"title\": \"\",\n  \"content\": \"Contenido de prueba\",\n  \"userId\": {{noteUserId}},\n  \"courseId\": {{noteCourseId}}\n}",
+                                                      "options":  {
+                                                                      "raw":  {
+                                                                                  "language":  "json"
+                                                                              }
+                                                                  },
+                                                      "mode":  "raw"
+                                                  }
+                                     },
+                         "event":  [
+                                       {
+                                           "script":  {
+                                                          "exec":  [
+                                                                       "pm.test(\"Status code es 400\", () =\u003e pm.response.to.have.status(400));",
+                                                                       "const error = pm.response.json();",
+                                                                       "pm.test(\"Error de validación con formato común\", () =\u003e { pm.expect(error.status).to.eql(400); pm.expect(error).to.have.property(\"fieldErrors\"); });"
+                                                                   ],
+                                                          "type":  "text/javascript"
+                                                      },
+                                           "listen":  "test"
+                                       }
+                                   ]
+                     },
+                     {
+                         "name":  "Crear nota (201)",
+                         "request":  {
+                                         "method":  "POST",
+                                         "header":  [
+                                                        {
+                                                            "key":  "Accept",
+                                                            "value":  "application/json"
+                                                        },
+                                                        {
+                                                            "key":  "Content-Type",
+                                                            "value":  "application/json"
+                                                        }
+                                                    ],
+                                         "url":  "{{baseUrl}}/notes",
+                                         "body":  {
+                                                      "raw":  "{\n  \"title\": \"Nota Postman\",\n  \"content\": \"Contenido creado desde la colección de Postman.\",\n  \"userId\": {{noteUserId}},\n  \"courseId\": {{noteCourseId}}\n}",
+                                                      "options":  {
+                                                                      "raw":  {
+                                                                                  "language":  "json"
+                                                                              }
+                                                                  },
+                                                      "mode":  "raw"
+                                                  }
+                                     },
+                         "event":  [
+                                       {
+                                           "script":  {
+                                                          "exec":  [
+                                                                       "pm.test(\"Status code es 201\", () =\u003e pm.response.to.have.status(201));",
+                                                                       "const note = pm.response.json();",
+                                                                       "pm.test(\"La nota inicia en PENDING\", () =\u003e pm.expect(note.processingStatus).to.eql(\"PENDING\"));",
+                                                                       "pm.test(\"Responde con Location\", () =\u003e pm.expect(pm.response.headers.get(\"Location\")).to.include(\"/notes/\" + note.id));",
+                                                                       "pm.collectionVariables.set(\"noteId\", note.id);"
+                                                                   ],
+                                                          "type":  "text/javascript"
+                                                      },
+                                           "listen":  "test"
+                                       }
+                                   ]
+                     },
+                     {
+                         "name":  "Listar notas con filtros (200)",
+                         "request":  {
+                                         "method":  "GET",
+                                         "header":  [
+                                                        {
+                                                            "key":  "Accept",
+                                                            "value":  "application/json"
+                                                        }
+                                                    ],
+                                         "url":  "{{baseUrl}}/notes?userId={{noteUserId}}\u0026courseId={{noteCourseId}}\u0026status=PENDING"
+                                     },
+                         "event":  [
+                                       {
+                                           "script":  {
+                                                          "exec":  [
+                                                                       "pm.test(\"Status code es 200\", () =\u003e pm.response.to.have.status(200));",
+                                                                       "const notes = pm.response.json();",
+                                                                       "pm.test(\"Incluye la nota creada\", () =\u003e pm.expect(notes.some(note =\u003e String(note.id) === String(pm.collectionVariables.get(\"noteId\")))).to.eql(true));"
+                                                                   ],
+                                                          "type":  "text/javascript"
+                                                      },
+                                           "listen":  "test"
+                                       }
+                                   ]
+                     },
+                     {
+                         "name":  "Consultar nota creada (200)",
+                         "request":  {
+                                         "method":  "GET",
+                                         "header":  [
+                                                        {
+                                                            "key":  "Accept",
+                                                            "value":  "application/json"
+                                                        }
+                                                    ],
+                                         "url":  "{{baseUrl}}/notes/{{noteId}}"
+                                     },
+                         "event":  [
+                                       {
+                                           "script":  {
+                                                          "exec":  [
+                                                                       "pm.test(\"Status code es 200\", () =\u003e pm.response.to.have.status(200));",
+                                                                       "pm.test(\"Devuelve el id solicitado\", () =\u003e pm.expect(String(pm.response.json().id)).to.eql(String(pm.collectionVariables.get(\"noteId\"))));"
+                                                                   ],
+                                                          "type":  "text/javascript"
+                                                      },
+                                           "listen":  "test"
+                                       }
+                                   ]
+                     },
+                     {
+                         "name":  "Actualizar nota (200)",
+                         "request":  {
+                                         "method":  "PUT",
+                                         "header":  [
+                                                        {
+                                                            "key":  "Accept",
+                                                            "value":  "application/json"
+                                                        },
+                                                        {
+                                                            "key":  "Content-Type",
+                                                            "value":  "application/json"
+                                                        }
+                                                    ],
+                                         "url":  "{{baseUrl}}/notes/{{noteId}}",
+                                         "body":  {
+                                                      "raw":  "{\n  \"title\": \"Nota Postman actualizada\",\n  \"content\": \"Contenido actualizado desde la colección.\",\n  \"userId\": {{noteUserId}},\n  \"courseId\": {{noteCourseId}}\n}",
+                                                      "options":  {
+                                                                      "raw":  {
+                                                                                  "language":  "json"
+                                                                              }
+                                                                  },
+                                                      "mode":  "raw"
+                                                  }
+                                     },
+                         "event":  [
+                                       {
+                                           "script":  {
+                                                          "exec":  [
+                                                                       "pm.test(\"Status code es 200\", () =\u003e pm.response.to.have.status(200));",
+                                                                       "pm.test(\"Devuelve el contenido actualizado\", () =\u003e pm.expect(pm.response.json().title).to.eql(\"Nota Postman actualizada\"));"
+                                                                   ],
+                                                          "type":  "text/javascript"
+                                                      },
+                                           "listen":  "test"
+                                       }
+                                   ]
+                     },
+                     {
+                         "name":  "Cambiar estado PENDING a PROCESSING (200)",
+                         "request":  {
+                                         "method":  "PATCH",
+                                         "header":  [
+                                                        {
+                                                            "key":  "Accept",
+                                                            "value":  "application/json"
+                                                        },
+                                                        {
+                                                            "key":  "Content-Type",
+                                                            "value":  "application/json"
+                                                        }
+                                                    ],
+                                         "url":  "{{baseUrl}}/notes/{{noteId}}/status",
+                                         "body":  {
+                                                      "raw":  "{ \"status\": \"PROCESSING\" }",
+                                                      "options":  {
+                                                                      "raw":  {
+                                                                                  "language":  "json"
+                                                                              }
+                                                                  },
+                                                      "mode":  "raw"
+                                                  }
+                                     },
+                         "event":  [
+                                       {
+                                           "script":  {
+                                                          "exec":  [
+                                                                       "pm.test(\"Status code es 200\", () =\u003e pm.response.to.have.status(200));",
+                                                                       "pm.test(\"El nuevo estado es PROCESSING\", () =\u003e pm.expect(pm.response.json().processingStatus).to.eql(\"PROCESSING\"));"
+                                                                   ],
+                                                          "type":  "text/javascript"
+                                                      },
+                                           "listen":  "test"
+                                       }
+                                   ]
+                     },
+                     {
+                         "name":  "Completar procesamiento (200)",
+                         "request":  {
+                                         "method":  "PATCH",
+                                         "header":  [
+                                                        {
+                                                            "key":  "Accept",
+                                                            "value":  "application/json"
+                                                        },
+                                                        {
+                                                            "key":  "Content-Type",
+                                                            "value":  "application/json"
+                                                        }
+                                                    ],
+                                         "url":  "{{baseUrl}}/notes/{{noteId}}/status",
+                                         "body":  {
+                                                      "raw":  "{ \"status\": \"COMPLETED\" }",
+                                                      "options":  {
+                                                                      "raw":  {
+                                                                                  "language":  "json"
+                                                                              }
+                                                                  },
+                                                      "mode":  "raw"
+                                                  }
+                                     },
+                         "event":  [
+                                       {
+                                           "script":  {
+                                                          "exec":  [
+                                                                       "pm.test(\"Status code es 200\", () =\u003e pm.response.to.have.status(200));",
+                                                                       "pm.test(\"El nuevo estado es COMPLETED\", () =\u003e pm.expect(pm.response.json().processingStatus).to.eql(\"COMPLETED\"));"
+                                                                   ],
+                                                          "type":  "text/javascript"
+                                                      },
+                                           "listen":  "test"
+                                       }
+                                   ]
+                     },
+                     {
+                         "name":  "Rechazar transición desde COMPLETED (409)",
+                         "request":  {
+                                         "method":  "PATCH",
+                                         "header":  [
+                                                        {
+                                                            "key":  "Accept",
+                                                            "value":  "application/json"
+                                                        },
+                                                        {
+                                                            "key":  "Content-Type",
+                                                            "value":  "application/json"
+                                                        }
+                                                    ],
+                                         "url":  "{{baseUrl}}/notes/{{noteId}}/status",
+                                         "body":  {
+                                                      "raw":  "{ \"status\": \"PROCESSING\" }",
+                                                      "options":  {
+                                                                      "raw":  {
+                                                                                  "language":  "json"
+                                                                              }
+                                                                  },
+                                                      "mode":  "raw"
+                                                  }
+                                     },
+                         "event":  [
+                                       {
+                                           "script":  {
+                                                          "exec":  [
+                                                                       "pm.test(\"Status code es 409\", () =\u003e pm.response.to.have.status(409));",
+                                                                       "pm.test(\"Error de conflicto con formato común\", () =\u003e { const error = pm.response.json(); pm.expect(error.status).to.eql(409); pm.expect(error).to.have.property(\"message\"); });"
+                                                                   ],
+                                                          "type":  "text/javascript"
+                                                      },
+                                           "listen":  "test"
+                                       }
+                                   ]
+                     },
+                     {
+                         "name":  "Eliminar nota (204)",
+                         "request":  {
+                                         "method":  "DELETE",
+                                         "header":  [
+                                                        {
+                                                            "key":  "Accept",
+                                                            "value":  "application/json"
+                                                        }
+                                                    ],
+                                         "url":  "{{baseUrl}}/notes/{{noteId}}"
+                                     },
+                         "event":  [
+                                       {
+                                           "script":  {
+                                                          "exec":  [
+                                                                       "pm.test(\"Status code es 204\", () =\u003e pm.response.to.have.status(204));",
+                                                                       "pm.test(\"No devuelve contenido\", () =\u003e pm.expect(pm.response.text()).to.eql(\"\"));"
+                                                                   ],
+                                                          "type":  "text/javascript"
+                                                      },
+                                           "listen":  "test"
+                                       }
+                                   ]
+                     },
+                     {
+                         "name":  "Consultar nota eliminada (404)",
+                         "request":  {
+                                         "method":  "GET",
+                                         "header":  [
+                                                        {
+                                                            "key":  "Accept",
+                                                            "value":  "application/json"
+                                                        }
+                                                    ],
+                                         "url":  "{{baseUrl}}/notes/{{noteId}}"
+                                     },
+                         "event":  [
+                                       {
+                                           "script":  {
+                                                          "exec":  [
+                                                                       "pm.test(\"Status code es 404\", () =\u003e pm.response.to.have.status(404));",
+                                                                       "pm.test(\"Error de recurso inexistente\", () =\u003e { const error = pm.response.json(); pm.expect(error.status).to.eql(404); pm.expect(error).to.have.property(\"message\"); });"
+                                                                   ],
+                                                          "type":  "text/javascript"
+                                                      },
+                                           "listen":  "test"
+                                       }
+                                   ]
+                     }
+                 ]
     }
   ],
   "variable": [

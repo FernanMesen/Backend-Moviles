@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/users?status=BLOCKED"
+method: GET
+headers:
+  Accept: application/json
+queryParams:
+  status: BLOCKED
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 200", () => pm.response.to.have.status(200));
+      pm.test("Todos están BLOCKED", () => pm.response.json().forEach(u => pm.expect(u.status).to.eql("BLOCKED")));
+    language: text/javascript
+order: 2000

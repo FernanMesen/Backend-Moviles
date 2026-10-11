@@ -1,0 +1,13 @@
+# Use this workspace to collaborate
+workspace:
+  id: 5796b521-86a6-4cf7-861b-f56b504aa99c
+
+cloudResources:
+  collections:
+    ../postman/collections/ApunteIA Backend: d3ed947b-eda5-44ab-a78b-c0f2ec33b70e
+
+# All resources in the `postman/` folder are automatically registered in Local View.
+# Point to additional files outside the `postman/` folder to register them individually. Example:
+#localResources:
+#  collections:
+#    - ../tests/E2E Test Collection/

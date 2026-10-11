@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/users/{{newUserId}}"
+method: GET
+headers:
+  Accept: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 200", () => pm.response.to.have.status(200));
+      pm.test("No expone password_hash", () => { const t = pm.response.text(); pm.expect(t).to.not.include("passwordHash"); pm.expect(t).to.not.include("password_hash"); });
+      pm.test("Es el usuario registrado", () => pm.expect(pm.response.json().email).to.eql(pm.collectionVariables.get("newEmail")));
+    language: text/javascript
+order: 4000

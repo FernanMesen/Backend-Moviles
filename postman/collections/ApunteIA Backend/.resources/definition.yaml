@@ -1,0 +1,17 @@
+$kind: collection
+description: |-
+  Colección del equipo para la API REST de ApunteIA (Lab 6).
+
+  Cada integrante agrega su carpeta: Auth y Usuarios (Fernán), Cursos/Inscripciones/Logs (Alice), Notas (Sharon), Evaluaciones (Dayron).
+
+  Variable {{baseUrl}}: http://localhost:8080 (local o Docker). Correr en orden con el Collection Runner.
+variables:
+  baseUrl: http://localhost:8080
+  demoEmail: demo@apunteia.com
+  demoPassword: "123456"
+  token: ""
+  newEmail: ""
+  newUserId: ""
+  noteUserId: ""
+  noteCourseId: ""
+  noteId: ""
