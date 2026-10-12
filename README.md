@@ -293,11 +293,3 @@ Cada integrante agrega su carpeta a la misma colección (Cursos, Notas, Evaluaci
 
 ---
 
-## 👥 Reparto — Lab 6 (Servicios, WebAPI, DTOs y Postman)
-
-| Integrante | Módulo | Endpoints |
-|---|---|---|
-| Fernán | Autenticación y Usuarios + base común (capa web, manejo de errores, colección Postman, Docker) | `/auth/*`, `/users/*` |
-| Alice | Cursos, Inscripciones y Auditoría | `/courses/*`, `/users/{id}/enrollments`, `/security-logs` |
-| Sharon | Notas de estudio | `/notes/*` |
-| Dayron | Evaluaciones e intentos | `/courses/{id}/assessments`, `/assessments/*`, `/attempts/*` |
