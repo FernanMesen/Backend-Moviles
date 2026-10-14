@@ -3,7 +3,11 @@ package ApunteIA.BackEnd.controller
 import ApunteIA.BackEnd.dto.course.CourseResponse
 import ApunteIA.BackEnd.dto.course.CreateCourseRequest
 import ApunteIA.BackEnd.dto.course.UpdateCourseRequest
+import ApunteIA.BackEnd.dto.enrollment.CreateEnrollmentRequest
+import ApunteIA.BackEnd.dto.enrollment.EnrollUserRequest
+import ApunteIA.BackEnd.dto.enrollment.EnrollmentResponse
 import ApunteIA.BackEnd.service.CourseService
+import ApunteIA.BackEnd.service.EnrollmentService
 import jakarta.validation.Valid
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -19,7 +23,24 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder
 
 @RestController
 @RequestMapping("/courses", produces = [MediaType.APPLICATION_JSON_VALUE])
-class CourseController(private val courseService: CourseService) {
+class CourseController(
+    private val courseService: CourseService,
+    private val enrollmentService: EnrollmentService,
+) {
+
+    /** POST /courses/{id}/enrollments → 201 + Location: /enrollments/{id} | 400 | 404 | 409 */
+    @PostMapping("/{id}/enrollments", consumes = [MediaType.APPLICATION_JSON_VALUE])
+    fun enroll(
+        @PathVariable id: Long,
+        @Valid @RequestBody request: EnrollUserRequest,
+    ): ResponseEntity<EnrollmentResponse> {
+        val created = enrollmentService.create(CreateEnrollmentRequest(userId = request.userId, courseId = id))
+        val location = ServletUriComponentsBuilder.fromCurrentContextPath()
+            .path("/enrollments/{id}")
+            .buildAndExpand(created.id)
+            .toUri()
+        return ResponseEntity.created(location).body(created)
+    }
 
     /** GET /courses → 200 */
     @GetMapping

@@ -4,6 +4,12 @@ import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Positive
 import java.time.LocalDateTime
 
+data class EnrollUserRequest(
+    @field:NotNull(message = "El usuario es obligatorio")
+    @field:Positive(message = "El id del usuario debe ser positivo")
+    val userId: Long? = null,
+)
+
 data class CreateEnrollmentRequest(
     @field:NotNull(message = "El usuario es obligatorio")
     @field:Positive(message = "El id del usuario debe ser positivo")

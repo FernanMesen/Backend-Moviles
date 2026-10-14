@@ -23,6 +23,8 @@ import org.springframework.test.web.servlet.patch
 import org.springframework.test.web.servlet.post
 import org.springframework.test.web.servlet.put
 import java.util.UUID
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 /** API real sobre H2, sin transacción de prueba que oculte problemas de acceso LAZY. */
 @SpringBootTest
@@ -48,6 +50,90 @@ class AcademicControllersTest @Autowired constructor(
     private fun createEnrollment() = mockMvc.post("/enrollments") {
         contentType = MediaType.APPLICATION_JSON
         content = """{"userId":$userId,"courseId":${course.id}}"""
+    }
+
+    private fun enrollViaCourse(courseId: Long = course.id!!, targetUserId: Long = userId) =
+        mockMvc.post("/courses/$courseId/enrollments") {
+            contentType = MediaType.APPLICATION_JSON
+            content = """{"userId":$targetUserId}"""
+        }
+
+    @Test
+    fun `POST course enrollment alias returns 201 and canonical Location`() {
+        val result = enrollViaCourse().andExpect {
+            status { isCreated() }
+            jsonPath("$.userId") { value(userId) }
+            jsonPath("$.courseId") { value(course.id) }
+        }.andReturn()
+        val id = objectMapper.readTree(result.response.contentAsString)["id"].asLong()
+        assertEquals("http://localhost/enrollments/$id", result.response.getHeader("Location"))
+        mockMvc.get("/enrollments/$id").andExpect {
+            status { isOk() }
+            jsonPath("$.userId") { value(userId) }
+            jsonPath("$.courseId") { value(course.id) }
+        }
+    }
+
+    @Test
+    fun `POST course enrollment alias rejects duplicate created by original endpoint`() {
+        createEnrollment().andExpect { status { isCreated() } }
+        enrollViaCourse().andExpect { status { isConflict() } }
+    }
+
+    @Test
+    fun `POST course enrollment alias rejects missing user`() {
+        enrollViaCourse(targetUserId = missingId).andExpect {
+            status { isNotFound() }
+            jsonPath("$.message") { value("No existe un usuario con id $missingId") }
+        }
+    }
+
+    @Test
+    fun `POST course enrollment alias rejects missing course`() {
+        enrollViaCourse(courseId = missingId).andExpect {
+            status { isNotFound() }
+            jsonPath("$.message") { value("No existe un curso con id $missingId") }
+        }
+    }
+
+    @Test
+    fun `POST course enrollment alias validates required positive user id`() {
+        for (body in listOf("{}", """{"userId":null}""", """{"userId":0}""", """{"userId":-1}""")) {
+            mockMvc.post("/courses/${course.id}/enrollments") {
+                contentType = MediaType.APPLICATION_JSON
+                content = body
+            }.andExpect {
+                status { isBadRequest() }
+                jsonPath("$.fieldErrors.userId") { exists() }
+            }
+        }
+    }
+
+    @Test
+    fun `GET user enrollments alias returns 200 with empty list when none exist`() {
+        mockMvc.get("/users/$missingId/enrollments").andExpect {
+            status { isOk() }
+            jsonPath("$") { isArray() }
+            jsonPath("$.length()") { value(0) }
+        }
+    }
+
+    @Test
+    fun `GET user enrollments alias includes only target user and matches original endpoint`() {
+        val created = createEnrollment().andExpect { status { isCreated() } }.andReturn()
+        val createdId = objectMapper.readTree(created.response.contentAsString)["id"].asLong()
+        val otherUserId = userRepository.findAll().first { it.id != userId }.id!!
+        enrollViaCourse(targetUserId = otherUserId).andExpect { status { isCreated() } }
+        val alias = mockMvc.get("/users/$userId/enrollments").andExpect {
+            status { isOk() }
+            jsonPath("$[*].userId") { value(everyItem(`is`(userId.toInt()))) }
+        }.andReturn()
+        val original = mockMvc.get("/enrollments?userId=$userId").andExpect {
+            status { isOk() }
+        }.andReturn()
+        val result = objectMapper.readTree(alias.response.contentAsString)
+        assertTrue(result.any { it["id"].asLong() == createdId })
+        assertEquals(objectMapper.readTree(original.response.contentAsString), result)
     }
 
     @Test
