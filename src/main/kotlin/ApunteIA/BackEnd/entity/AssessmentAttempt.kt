@@ -27,14 +27,14 @@ class AssessmentAttempt(
     @JoinColumn(name = "user_id", nullable = false)
     var user: User,
 
-    @Column(name = "score", nullable = false, precision = 5, scale = 2)
-    var score: BigDecimal = BigDecimal.ZERO,
+    @Column(name = "score", precision = 5, scale = 2)
+    var score: BigDecimal? = null,
 
     @Column(name = "started_at", nullable = false)
     var startedAt: Instant = Instant.now(),
 
-    @Column(name = "completed_at", nullable = false)
-    var completedAt: Instant = Instant.now(),
+    @Column(name = "completed_at")
+    var completedAt: Instant? = null,
 
     @Column(name = "duration_seconds", nullable = false)
     var durationSeconds: Long = 0L,
@@ -47,6 +47,9 @@ class AssessmentAttempt(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
 ) {
+    val completed: Boolean
+        get() = completedAt != null
+
     override fun toString() = "AssessmentAttempt(id=$id, score=$score)"
 
     companion object {
