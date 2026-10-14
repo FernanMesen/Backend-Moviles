@@ -2696,6 +2696,393 @@
               }
             }
           ]
+        },
+        {
+          "name": "30 - Referencia de logs reales del usuario demo - 200",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/security-logs?userId={{demoUserId}}"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "['academicBeforeLOGIN_FAILED', 'academicBeforeLOGIN', 'academicCourseId', 'academicEnrollmentId'].forEach(key => pm.collectionVariables.unset(key));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Respuesta es array', () => pm.expect(body).to.be.an('array'));",
+                  "pm.test('Guardar referencia por evento', () => { ['LOGIN_FAILED', 'LOGIN'].forEach(type => { const ids = body.filter(log => log.eventType === type).map(log => log.id); pm.collectionVariables.set('academicBefore' + type, Math.max(0, ...ids)); }); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "31 - Login fallido real - 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"demo@apunteia.com\",\"password\":\"incorrecta-postman-33\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Formato comun de error', () => { pm.expect(body.status).to.eql(401); ['message', 'error', 'path', 'timestamp'].forEach(key => pm.expect(body[key]).to.be.a('string').and.not.empty); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "32 - Comprobar LOGIN_FAILED nuevo y persistido - 200",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/security-logs?eventType=LOGIN_FAILED"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Respuesta es array', () => pm.expect(body).to.be.an('array'));",
+                  "pm.test('Lista no vacia y eventos LOGIN_FAILED', () => { pm.expect(body).to.not.be.empty; body.forEach(log => pm.expect(log.eventType).to.eql('LOGIN_FAILED')); });",
+                  "pm.test('Existe fallo nuevo del demo con motivo de password incorrecto', () => { const previous = Number(pm.collectionVariables.get('academicBeforeLOGIN_FAILED')); const userId = Number(pm.collectionVariables.get('demoUserId')); const latest = body.find(log => log.userId === userId); pm.expect(latest).to.be.an('object'); pm.expect(latest.id).to.be.above(previous); pm.expect(latest.details).to.include('incorrecta'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "33 - Login exitoso real y guardar demoUserId - 200",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"demo@apunteia.com\",\"password\":\"123456\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Token y usuario demo validos; guardar ID', () => { pm.expect(body.token).to.be.a('string').and.not.empty; pm.expect(Number.isInteger(body.userId) && body.userId > 0).to.eql(true); pm.expect(body.email).to.eql('demo@apunteia.com'); pm.collectionVariables.set('demoUserId', body.userId); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "34 - Comprobar LOGIN nuevo asociado al demo - 200",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/security-logs?userId={{demoUserId}}&eventType=LOGIN"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Respuesta es array', () => pm.expect(body).to.be.an('array'));",
+                  "pm.test('Lista no vacia con LOGIN del usuario solicitado', () => { pm.expect(body).to.not.be.empty; body.forEach(log => { pm.expect(log.userId).to.eql(Number(pm.collectionVariables.get('demoUserId'))); pm.expect(log.eventType).to.eql('LOGIN'); }); });",
+                  "pm.test('El LOGIN mas reciente es nuevo', () => pm.expect(body[0].id).to.be.above(Number(pm.collectionVariables.get('academicBeforeLOGIN'))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "35 - Crear curso temporal para aliases - 201",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/courses",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"code\":\"{{academicCourseCode}}\",\"name\":\"Curso temporal aliases Alice\",\"description\":\"Cleanup al finalizar issue 33\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('academicCourseCode', 'ALIAS_' + pm.variables.replaceIn('{{$guid}}').replace(/-/g, ''));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Curso dinamico creado; guardar ID', () => { pm.expect(Number.isInteger(body.id) && body.id > 0).to.eql(true); pm.expect(body.code).to.eql(pm.collectionVariables.get('academicCourseCode')); pm.collectionVariables.set('academicCourseId', body.id); });",
+                  "pm.test('Location del curso', () => pm.expect(pm.response.headers.get('Location')).to.match(new RegExp('/courses/' + body.id + '$')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "36 - Alias inscribir demo en curso - 201",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{academicCourseId}}/enrollments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"userId\":{{demoUserId}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Inscripcion del curso y usuario solicitados; guardar ID', () => { pm.expect(body.userId).to.eql(Number(pm.collectionVariables.get('demoUserId'))); pm.expect(body.courseId).to.eql(Number(pm.collectionVariables.get('academicCourseId'))); pm.expect(Number.isInteger(body.id) && body.id > 0).to.eql(true); pm.collectionVariables.set('academicEnrollmentId', body.id); });",
+                  "pm.test('Location del recurso creado', () => pm.expect(pm.response.headers.get('Location')).to.match(new RegExp('/enrollments/' + body.id + '$')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "37 - Alias rechaza inscripcion duplicada - 409",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{academicCourseId}}/enrollments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"userId\":{{demoUserId}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Formato comun de error', () => { pm.expect(body.status).to.eql(409); ['message', 'error', 'path', 'timestamp'].forEach(key => pm.expect(body[key]).to.be.a('string').and.not.empty); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "38 - Alias consultar inscripciones del demo - 200",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/{{demoUserId}}/enrollments"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Respuesta es array', () => pm.expect(body).to.be.an('array'));",
+                  "pm.test('Contiene inscripcion creada', () => pm.expect(body.some(enrollment => enrollment.id === Number(pm.collectionVariables.get('academicEnrollmentId')) && enrollment.courseId === Number(pm.collectionVariables.get('academicCourseId')))).to.eql(true));",
+                  "pm.test('Solo inscripciones del usuario solicitado', () => body.forEach(enrollment => pm.expect(enrollment.userId).to.eql(Number(pm.collectionVariables.get('demoUserId')))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "39 - Cleanup inscripcion de aliases - 204",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/enrollments/{{academicEnrollmentId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));",
+                  "pm.test('Sin cuerpo', () => pm.expect(pm.response.text()).to.eql(''));",
+                  "if (pm.response.code === 204) pm.collectionVariables.unset('academicEnrollmentId');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "40 - Cleanup curso temporal de aliases - 204",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{academicCourseId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));",
+                  "pm.test('Sin cuerpo', () => pm.expect(pm.response.text()).to.eql(''));",
+                  "if (pm.response.code === 204) ['academicCourseId', 'academicCourseCode', 'academicBeforeLOGIN_FAILED', 'academicBeforeLOGIN'].forEach(key => pm.collectionVariables.unset(key));"
+                ]
+              }
+            }
+          ]
         }
       ]
     }
