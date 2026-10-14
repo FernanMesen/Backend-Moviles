@@ -1748,6 +1748,956 @@
                                    ]
                      }
                  ]
+    },
+    {
+      "name": "Cursos, Inscripciones y Logs (Alice)",
+      "description": "Issue #33. Ejecutar esta carpeta completa en orden con el environment ApunteIA Local. Descubre el usuario demo, genera un código ?nico, comprueba errores y filtros, y elimina la inscripción y el curso temporales. Los logs son solo lectura; los filtros admiten listas vacías. Reinicia las variables académicas en la primera petición. Si la ejecución se interrumpe antes de la limpieza, pueden quedar datos temporales. No depende de las carpetas de otros integrantes.",
+      "item": [
+        {
+          "name": "01 - Obtener usuario demo - 200",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "['demoUserId', 'academicCourseId', 'academicEnrollmentId'].forEach(key => pm.collectionVariables.unset(key));",
+                  "const unique = Date.now().toString(36) + '_' + pm.variables.replaceIn('{{$guid}}').replace(/-/g, '').slice(0, 12);",
+                  "pm.collectionVariables.set('academicCourseCode', 'POSTMAN_' + unique);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Respuesta es un array', () => pm.expect(body).to.be.an('array'));",
+                  "pm.test('Existe demo@apunteia.com con ID válido', () => { const demo = body.find(user => user.email === 'demo@apunteia.com'); pm.expect(demo, 'No existe el usuario demo@apunteia.com; revisar los datos semilla').to.be.an('object'); pm.expect(Number.isInteger(demo.id) && demo.id > 0, 'El usuario demo debe tener un ID positivo').to.eql(true); pm.collectionVariables.set('demoUserId', demo.id); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 - Listar cursos - 200",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/courses"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Respuesta es un array', () => pm.expect(body).to.be.an('array'));",
+                  "pm.test('Cursos con campos básicos', () => body.forEach(course => { pm.expect(course.id).to.be.a('number').and.above(0); pm.expect(course.code).to.be.a('string'); pm.expect(course.name).to.be.a('string'); }));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 - Crear curso válido - 201",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/courses",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"{{academicCourseCode}}\",\n  \"name\": \"Curso Postman Alice\",\n  \"description\": \"Datos temporales del issue #33\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('DTO de curso', () => { pm.expect(body).to.have.all.keys('id', 'code', 'name', 'description'); pm.expect(body.id).to.be.a('number').and.above(0); pm.expect(body.code).to.be.a('string'); pm.expect(body.name).to.be.a('string'); pm.expect(body.description === null || typeof body.description === 'string').to.eql(true); });",
+                  "pm.test('Código dinámico y campos correctos; guardar ID', () => { pm.expect(body.code).to.eql(pm.collectionVariables.get('academicCourseCode')); pm.expect(body.name).to.eql('Curso Postman Alice'); pm.expect(body.description).to.eql('Datos temporales del issue #33'); pm.expect(Number.isInteger(body.id) && body.id > 0).to.eql(true); pm.collectionVariables.set('academicCourseId', body.id); });",
+                  "pm.test('Location apunta al curso creado', () => pm.expect(pm.response.headers.get('Location')).to.match(new RegExp('/courses/' + body.id + '$')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 - Consultar curso creado - 200",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{academicCourseId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('DTO de curso', () => { pm.expect(body).to.have.all.keys('id', 'code', 'name', 'description'); pm.expect(body.id).to.be.a('number').and.above(0); pm.expect(body.code).to.be.a('string'); pm.expect(body.name).to.be.a('string'); pm.expect(body.description === null || typeof body.description === 'string').to.eql(true); });",
+                  "pm.test('Curso creado coincide con las variables', () => { pm.expect(body.id).to.eql(Number(pm.collectionVariables.get('academicCourseId'))); pm.expect(body.code).to.eql(pm.collectionVariables.get('academicCourseCode')); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 - Crear curso inválido - 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/courses",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"code\":\"\",\"name\":\"\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Error con formato común', () => { pm.expect(body.status).to.eql(400); pm.expect(body.message).to.be.a('string').and.not.empty; pm.expect(body.error).to.be.a('string'); pm.expect(body.path).to.be.a('string'); pm.expect(body.timestamp).to.be.a('string'); });",
+                  "pm.test('Errores de validación para code y name', () => { pm.expect(body.fieldErrors.code).to.be.a('string').and.not.empty; pm.expect(body.fieldErrors.name).to.be.a('string').and.not.empty; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 - Curso duplicado - 409",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/courses",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"{{academicCourseCode}}\",\n  \"name\": \"Curso Postman Alice\",\n  \"description\": \"Datos temporales del issue #33\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Error con formato común', () => { pm.expect(body.status).to.eql(409); pm.expect(body.message).to.be.a('string').and.not.empty; pm.expect(body.error).to.be.a('string'); pm.expect(body.path).to.be.a('string'); pm.expect(body.timestamp).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 - Actualizar curso - 200",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{academicCourseId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"code\":\"{{academicCourseCode}}\",\"name\":\"Curso Postman actualizado\",\"description\":\"Descripción actualizada por Alice\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('DTO de curso', () => { pm.expect(body).to.have.all.keys('id', 'code', 'name', 'description'); pm.expect(body.id).to.be.a('number').and.above(0); pm.expect(body.code).to.be.a('string'); pm.expect(body.name).to.be.a('string'); pm.expect(body.description === null || typeof body.description === 'string').to.eql(true); });",
+                  "pm.test('Curso creado coincide con las variables', () => { pm.expect(body.id).to.eql(Number(pm.collectionVariables.get('academicCourseId'))); pm.expect(body.code).to.eql(pm.collectionVariables.get('academicCourseCode')); });",
+                  "pm.test('Nombre y descripción actualizados', () => { pm.expect(body.name).to.eql('Curso Postman actualizado'); pm.expect(body.description).to.eql('Descripción actualizada por Alice'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08 - Curso inexistente - 404",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/999999999"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Error con formato común', () => { pm.expect(body.status).to.eql(404); pm.expect(body.message).to.be.a('string').and.not.empty; pm.expect(body.error).to.be.a('string'); pm.expect(body.path).to.be.a('string'); pm.expect(body.timestamp).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "09 - Crear inscripción - 201",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/enrollments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{demoUserId}},\n  \"courseId\": {{academicCourseId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('DTO de inscripción sin entidades ni credenciales', () => { pm.expect(body).to.have.all.keys('id', 'userId', 'userFullName', 'userEmail', 'courseId', 'courseCode', 'courseName', 'enrolledAt'); pm.expect(body.id).to.be.a('number').and.above(0); pm.expect(body.userFullName).to.be.a('string').and.not.empty; pm.expect(body.userEmail).to.eql('demo@apunteia.com'); pm.expect(body.courseCode).to.eql(pm.collectionVariables.get('academicCourseCode')); pm.expect(body.courseName).to.eql('Curso Postman actualizado'); pm.expect(body.enrolledAt).to.be.a('string').and.not.empty; });",
+                  "pm.test('Usuario y curso correctos', () => { pm.expect(body.userId).to.eql(Number(pm.collectionVariables.get('demoUserId'))); pm.expect(body.courseId).to.eql(Number(pm.collectionVariables.get('academicCourseId'))); });",
+                  "pm.test('Guardar ID de inscripción válido', () => { pm.expect(Number.isInteger(body.id) && body.id > 0).to.eql(true); pm.collectionVariables.set('academicEnrollmentId', body.id); });",
+                  "pm.test('Location apunta a la inscripción creada', () => pm.expect(pm.response.headers.get('Location')).to.match(new RegExp('/enrollments/' + body.id + '$')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "10 - Listar inscripciones - 200",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/enrollments"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Respuesta es un array', () => pm.expect(body).to.be.an('array'));",
+                  "pm.test('La lista contiene la inscripción creada', () => pm.expect(body.some(item => item.id === Number(pm.collectionVariables.get('academicEnrollmentId')))).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "11 - Consultar inscripción creada - 200",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/enrollments/{{academicEnrollmentId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('DTO de inscripción sin entidades ni credenciales', () => { pm.expect(body).to.have.all.keys('id', 'userId', 'userFullName', 'userEmail', 'courseId', 'courseCode', 'courseName', 'enrolledAt'); pm.expect(body.id).to.be.a('number').and.above(0); pm.expect(body.userFullName).to.be.a('string').and.not.empty; pm.expect(body.userEmail).to.eql('demo@apunteia.com'); pm.expect(body.courseCode).to.eql(pm.collectionVariables.get('academicCourseCode')); pm.expect(body.courseName).to.eql('Curso Postman actualizado'); pm.expect(body.enrolledAt).to.be.a('string').and.not.empty; });",
+                  "pm.test('Usuario y curso correctos', () => { pm.expect(body.userId).to.eql(Number(pm.collectionVariables.get('demoUserId'))); pm.expect(body.courseId).to.eql(Number(pm.collectionVariables.get('academicCourseId'))); });",
+                  "pm.test('ID de inscripción correcto', () => pm.expect(body.id).to.eql(Number(pm.collectionVariables.get('academicEnrollmentId'))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "12 - Inscripciones por usuario - 200",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/enrollments?userId={{demoUserId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Respuesta es un array', () => pm.expect(body).to.be.an('array'));",
+                  "pm.test('Todas pertenecen al usuario y contienen la inscripción creada', () => { pm.expect(body.length).to.be.above(0); body.forEach(item => pm.expect(item.userId).to.eql(Number(pm.collectionVariables.get('demoUserId')))); pm.expect(body.some(item => item.id === Number(pm.collectionVariables.get('academicEnrollmentId')))).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "13 - Inscripciones por curso - 200",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/enrollments?courseId={{academicCourseId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Respuesta es un array', () => pm.expect(body).to.be.an('array'));",
+                  "pm.test('Todas pertenecen al curso y contienen la inscripción creada', () => { pm.expect(body.length).to.be.above(0); body.forEach(item => pm.expect(item.courseId).to.eql(Number(pm.collectionVariables.get('academicCourseId')))); pm.expect(body.some(item => item.id === Number(pm.collectionVariables.get('academicEnrollmentId')))).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "14 - Inscripciones por usuario y curso - 200",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/enrollments?userId={{demoUserId}}&courseId={{academicCourseId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Respuesta es un array', () => pm.expect(body).to.be.an('array'));",
+                  "pm.test('Intersección contiene ?nicamente la inscripción creada', () => { pm.expect(body.length).to.eql(1); pm.expect(body[0].id).to.eql(Number(pm.collectionVariables.get('academicEnrollmentId'))); pm.expect(body[0].userId).to.eql(Number(pm.collectionVariables.get('demoUserId'))); pm.expect(body[0].courseId).to.eql(Number(pm.collectionVariables.get('academicCourseId'))); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "15 - Inscripción duplicada - 409",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/enrollments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{demoUserId}},\n  \"courseId\": {{academicCourseId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Error con formato común', () => { pm.expect(body.status).to.eql(409); pm.expect(body.message).to.be.a('string').and.not.empty; pm.expect(body.error).to.be.a('string'); pm.expect(body.path).to.be.a('string'); pm.expect(body.timestamp).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "16 - Inscribir usuario inexistente - 404",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/enrollments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"userId\":999999999,\"courseId\":{{academicCourseId}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Error con formato común', () => { pm.expect(body.status).to.eql(404); pm.expect(body.message).to.be.a('string').and.not.empty; pm.expect(body.error).to.be.a('string'); pm.expect(body.path).to.be.a('string'); pm.expect(body.timestamp).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "17 - Inscribir en curso inexistente - 404",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/enrollments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"userId\":{{demoUserId}},\"courseId\":999999999}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Error con formato común', () => { pm.expect(body.status).to.eql(404); pm.expect(body.message).to.be.a('string').and.not.empty; pm.expect(body.error).to.be.a('string'); pm.expect(body.path).to.be.a('string'); pm.expect(body.timestamp).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "18 - Rechazar borrado de curso con inscripción - 409",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{academicCourseId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Error con formato común', () => { pm.expect(body.status).to.eql(409); pm.expect(body.message).to.be.a('string').and.not.empty; pm.expect(body.error).to.be.a('string'); pm.expect(body.path).to.be.a('string'); pm.expect(body.timestamp).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "19 - Eliminar inscripción - 204",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/enrollments/{{academicEnrollmentId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));",
+                  "pm.test('Body vacío', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "20 - Confirmar inscripción eliminada - 404",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/enrollments/{{academicEnrollmentId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Error con formato común', () => { pm.expect(body.status).to.eql(404); pm.expect(body.message).to.be.a('string').and.not.empty; pm.expect(body.error).to.be.a('string'); pm.expect(body.path).to.be.a('string'); pm.expect(body.timestamp).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "21 - Eliminar curso sin inscripción - 204",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{academicCourseId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));",
+                  "pm.test('Body vacío', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "22 - Confirmar curso eliminado - 404",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{academicCourseId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Error con formato común', () => { pm.expect(body.status).to.eql(404); pm.expect(body.message).to.be.a('string').and.not.empty; pm.expect(body.error).to.be.a('string'); pm.expect(body.path).to.be.a('string'); pm.expect(body.timestamp).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "23 - Listar logs - 200",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/security-logs"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Respuesta es un array', () => pm.expect(body).to.be.an('array'));",
+                  "pm.test('DTOs de auditoría sin entidades ni credenciales', () => { body.forEach(log => { pm.expect(log).to.have.all.keys('id', 'eventType', 'userId', 'userFullName', 'details', 'ipAddress', 'occurredAt'); pm.expect(log.id).to.be.a('number').and.above(0); pm.expect(log.eventType).to.be.a('string').and.not.empty; pm.expect(log.occurredAt).to.be.a('string').and.not.empty; pm.expect(log.userId === null || (Number.isInteger(log.userId) && log.userId > 0)).to.eql(true); pm.expect(log.userFullName === null || typeof log.userFullName === 'string').to.eql(true); }); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "24 - Logs por evento LOGIN - 200",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/security-logs?eventType=LOGIN"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Respuesta es un array', () => pm.expect(body).to.be.an('array'));",
+                  "pm.test('DTOs de auditoría sin entidades ni credenciales', () => { body.forEach(log => { pm.expect(log).to.have.all.keys('id', 'eventType', 'userId', 'userFullName', 'details', 'ipAddress', 'occurredAt'); pm.expect(log.id).to.be.a('number').and.above(0); pm.expect(log.eventType).to.be.a('string').and.not.empty; pm.expect(log.occurredAt).to.be.a('string').and.not.empty; pm.expect(log.userId === null || (Number.isInteger(log.userId) && log.userId > 0)).to.eql(true); pm.expect(log.userFullName === null || typeof log.userFullName === 'string').to.eql(true); }); });",
+                  "pm.test('Todos los resultados corresponden a LOGIN', () => body.forEach(log => pm.expect(log.eventType).to.eql('LOGIN')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "25 - Logs por usuario demo - 200",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/security-logs?userId={{demoUserId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Respuesta es un array', () => pm.expect(body).to.be.an('array'));",
+                  "pm.test('DTOs de auditoría sin entidades ni credenciales', () => { body.forEach(log => { pm.expect(log).to.have.all.keys('id', 'eventType', 'userId', 'userFullName', 'details', 'ipAddress', 'occurredAt'); pm.expect(log.id).to.be.a('number').and.above(0); pm.expect(log.eventType).to.be.a('string').and.not.empty; pm.expect(log.occurredAt).to.be.a('string').and.not.empty; pm.expect(log.userId === null || (Number.isInteger(log.userId) && log.userId > 0)).to.eql(true); pm.expect(log.userFullName === null || typeof log.userFullName === 'string').to.eql(true); }); });",
+                  "pm.test('Todos los resultados pertenecen al usuario demo', () => body.forEach(log => pm.expect(log.userId).to.eql(Number(pm.collectionVariables.get('demoUserId')))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "26 - Logs anónimos - 200",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/security-logs?anonymousOnly=true"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Respuesta es un array', () => pm.expect(body).to.be.an('array'));",
+                  "pm.test('DTOs de auditoría sin entidades ni credenciales', () => { body.forEach(log => { pm.expect(log).to.have.all.keys('id', 'eventType', 'userId', 'userFullName', 'details', 'ipAddress', 'occurredAt'); pm.expect(log.id).to.be.a('number').and.above(0); pm.expect(log.eventType).to.be.a('string').and.not.empty; pm.expect(log.occurredAt).to.be.a('string').and.not.empty; pm.expect(log.userId === null || (Number.isInteger(log.userId) && log.userId > 0)).to.eql(true); pm.expect(log.userFullName === null || typeof log.userFullName === 'string').to.eql(true); }); });",
+                  "pm.test('Todos los logs son anónimos', () => body.forEach(log => { pm.expect(log.userId).to.eql(null); pm.expect(log.userFullName).to.eql(null); }));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "27 - Log inexistente - 404",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/security-logs/999999999"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Error con formato común', () => { pm.expect(body.status).to.eql(404); pm.expect(body.message).to.be.a('string').and.not.empty; pm.expect(body.error).to.be.a('string'); pm.expect(body.path).to.be.a('string'); pm.expect(body.timestamp).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "28 - Auditoría rechaza creación - 405",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/security-logs",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"eventType\":\"POSTMAN_TEST\",\"details\":\"Debe rechazarse\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 405', () => pm.response.to.have.status(405));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Error con formato común', () => { pm.expect(body.status).to.eql(405); pm.expect(body.message).to.be.a('string').and.not.empty; pm.expect(body.error).to.be.a('string'); pm.expect(body.path).to.be.a('string'); pm.expect(body.timestamp).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "29 - Curso con Content-Type incorrecto - 415",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "text/plain"
+              }
+            ],
+            "url": "{{baseUrl}}/courses",
+            "body": {
+              "mode": "raw",
+              "raw": "Contenido no JSON",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 415', () => pm.response.to.have.status(415));",
+                  "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Error con formato común', () => { pm.expect(body.status).to.eql(415); pm.expect(body.message).to.be.a('string').and.not.empty; pm.expect(body.error).to.be.a('string'); pm.expect(body.path).to.be.a('string'); pm.expect(body.timestamp).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "variable": [
