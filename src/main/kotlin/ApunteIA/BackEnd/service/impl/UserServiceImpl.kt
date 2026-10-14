@@ -7,6 +7,7 @@ import ApunteIA.BackEnd.exception.NotFoundException
 import ApunteIA.BackEnd.mapper.UserMapper
 import ApunteIA.BackEnd.repository.UserRepository
 import ApunteIA.BackEnd.service.UserService
+import ApunteIA.BackEnd.service.SecurityLogService
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional
 class UserServiceImpl(
     private val userRepository: UserRepository,
     private val userMapper: UserMapper,
+    private val securityLogService: SecurityLogService,
 ) : UserService {
 
     override fun findAll(status: UserStatus?): List<UserResponse> {
@@ -40,8 +42,12 @@ class UserServiceImpl(
             throw ConflictException("El usuario $id está eliminado y su estado ya no se puede cambiar")
         }
 
+        val previousStatus = user.status
         user.status = newStatus
-        return userMapper.toResponse(userRepository.saveAndFlush(user))
+        val saved = userRepository.saveAndFlush(user)
+        securityLogService.record(SecurityLogService.USER_STATUS_CHANGED, saved.id,
+            "Estado cambiado de $previousStatus a $newStatus")
+        return userMapper.toResponse(saved)
     }
 
     private fun findUserOrThrow(id: Long) =

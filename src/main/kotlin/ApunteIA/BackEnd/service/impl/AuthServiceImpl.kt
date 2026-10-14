@@ -16,6 +16,7 @@ import ApunteIA.BackEnd.repository.PrivilegeRepository
 import ApunteIA.BackEnd.repository.RoleRepository
 import ApunteIA.BackEnd.repository.UserRepository
 import ApunteIA.BackEnd.service.AuthService
+import ApunteIA.BackEnd.service.SecurityLogService
 import ApunteIA.BackEnd.service.TokenGenerator
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
@@ -35,31 +36,44 @@ class AuthServiceImpl(
     private val passwordEncoder: PasswordEncoder,
     private val tokenGenerator: TokenGenerator,
     private val userMapper: UserMapper,
+    private val securityLogService: SecurityLogService,
 ) : AuthService {
 
     @Transactional
     override fun login(request: LoginRequest): LoginResponse {
         val user = userRepository.findByEmail(UserMapper.normalizeEmail(request.email))
-            ?: throw UnauthorizedException(INVALID_CREDENTIALS)
+            ?: run {
+                securityLogService.recordIndependent(SecurityLogService.LOGIN_FAILED,
+                    details = "Email no registrado: ${UserMapper.normalizeEmail(request.email)}")
+                throw UnauthorizedException(INVALID_CREDENTIALS)
+            }
 
-        if (user.status == UserStatus.DELETED) throw UnauthorizedException(INVALID_CREDENTIALS)
+        if (user.status == UserStatus.DELETED) {
+            securityLogService.recordIndependent(SecurityLogService.LOGIN_FAILED, user.id, "Usuario eliminado")
+            throw UnauthorizedException(INVALID_CREDENTIALS)
+        }
 
         val passwordHash = user.passwordHash
         if (user.authProvider == AuthProvider.GOOGLE || passwordHash == null) {
+            securityLogService.recordIndependent(SecurityLogService.LOGIN_FAILED, user.id, "Cuenta Google o sin contraseña local")
             throw UnauthorizedException("Esta cuenta inicia sesión con Google, no con contraseña")
         }
 
         if (!passwordEncoder.matches(request.password, passwordHash)) {
+            securityLogService.recordIndependent(SecurityLogService.LOGIN_FAILED, user.id, "Contraseña incorrecta")
             throw UnauthorizedException(INVALID_CREDENTIALS)
         }
 
         // Se revisa después de la contraseña para no confirmar el estado a quien no la conoce
         if (user.status == UserStatus.BLOCKED) {
+            securityLogService.recordIndependent(SecurityLogService.LOGIN_FAILED, user.id, "Usuario bloqueado")
             throw ForbiddenException("La cuenta está bloqueada. Contacte al administrador")
         }
 
         user.lastLoginAt = LocalDateTime.now() // la transacción hace el UPDATE al terminar
-        return userMapper.toLoginResponse(user, tokenGenerator.generate())
+        val response = userMapper.toLoginResponse(user, tokenGenerator.generate())
+        securityLogService.record(SecurityLogService.LOGIN, user.id)
+        return response
     }
 
     @Transactional
@@ -75,7 +89,9 @@ class AuthServiceImpl(
             ?: privilegeRepository.save(Privilege(name = Privilege.BASIC, description = "Acceso básico"))
 
         val user = userMapper.toEntity(request, role, privilege, passwordEncoder.encode(request.password))
-        return userMapper.toResponse(userRepository.saveAndFlush(user))
+        val saved = userRepository.saveAndFlush(user)
+        securityLogService.record(SecurityLogService.USER_REGISTERED, saved.id, "Usuario registrado: $email")
+        return userMapper.toResponse(saved)
     }
 
     private companion object {
