@@ -1381,373 +1381,373 @@
       ]
     },
     {
-        "name":  "Notas (Sharon)",
-        "description":  "CRUD y filtros de notas, validación de solicitud, códigos HTTP y transiciones del estado de procesamiento. Ejecutar en orden de arriba hacia abajo.",
-        "item":  [
-                     {
-                         "name":  "Preparar IDs desde notas de ejemplo (200)",
-                         "request":  {
-                                         "method":  "GET",
-                                         "header":  [
-                                                        {
-                                                            "key":  "Accept",
-                                                            "value":  "application/json"
-                                                        }
-                                                    ],
-                                         "url":  "{{baseUrl}}/notes"
-                                     },
-                         "description":  "Toma userId y courseId de los datos semilla; ejecutar antes de las demás peticiones.",
-                         "event":  [
-                                       {
-                                           "script":  {
-                                                          "exec":  [
-                                                                       "pm.test(\"Status code es 200\", () =\u003e pm.response.to.have.status(200));",
-                                                                       "const notes = pm.response.json();",
-                                                                       "const sample = notes.find(note =\u003e note.courseCode === \"EIF411\");",
-                                                                       "pm.test(\"Existe la nota sembrada del curso EIF411\", () =\u003e pm.expect(sample).to.exist);",
-                                                                       "pm.collectionVariables.set(\"noteUserId\", sample.userId);",
-                                                                       "pm.collectionVariables.set(\"noteCourseId\", sample.courseId);"
-                                                                   ],
-                                                          "type":  "text/javascript"
-                                                      },
-                                           "listen":  "test"
-                                       }
-                                   ]
-                     },
-                     {
-                         "name":  "Crear nota con título vacío (400)",
-                         "request":  {
-                                         "method":  "POST",
-                                         "header":  [
-                                                        {
-                                                            "key":  "Accept",
-                                                            "value":  "application/json"
-                                                        },
-                                                        {
-                                                            "key":  "Content-Type",
-                                                            "value":  "application/json"
-                                                        }
-                                                    ],
-                                         "url":  "{{baseUrl}}/notes",
-                                         "body":  {
-                                                      "raw":  "{\n  \"title\": \"\",\n  \"content\": \"Contenido de prueba\",\n  \"userId\": {{noteUserId}},\n  \"courseId\": {{noteCourseId}}\n}",
-                                                      "options":  {
-                                                                      "raw":  {
-                                                                                  "language":  "json"
-                                                                              }
-                                                                  },
-                                                      "mode":  "raw"
-                                                  }
-                                     },
-                         "event":  [
-                                       {
-                                           "script":  {
-                                                          "exec":  [
-                                                                       "pm.test(\"Status code es 400\", () =\u003e pm.response.to.have.status(400));",
-                                                                       "const error = pm.response.json();",
-                                                                       "pm.test(\"Error de validación con formato común\", () =\u003e { pm.expect(error.status).to.eql(400); pm.expect(error).to.have.property(\"fieldErrors\"); });"
-                                                                   ],
-                                                          "type":  "text/javascript"
-                                                      },
-                                           "listen":  "test"
-                                       }
-                                   ]
-                     },
-                     {
-                         "name":  "Crear nota (201)",
-                         "request":  {
-                                         "method":  "POST",
-                                         "header":  [
-                                                        {
-                                                            "key":  "Accept",
-                                                            "value":  "application/json"
-                                                        },
-                                                        {
-                                                            "key":  "Content-Type",
-                                                            "value":  "application/json"
-                                                        }
-                                                    ],
-                                         "url":  "{{baseUrl}}/notes",
-                                         "body":  {
-                                                      "raw":  "{\n  \"title\": \"Nota Postman\",\n  \"content\": \"Contenido creado desde la colección de Postman.\",\n  \"userId\": {{noteUserId}},\n  \"courseId\": {{noteCourseId}}\n}",
-                                                      "options":  {
-                                                                      "raw":  {
-                                                                                  "language":  "json"
-                                                                              }
-                                                                  },
-                                                      "mode":  "raw"
-                                                  }
-                                     },
-                         "event":  [
-                                       {
-                                           "script":  {
-                                                          "exec":  [
-                                                                       "pm.test(\"Status code es 201\", () =\u003e pm.response.to.have.status(201));",
-                                                                       "const note = pm.response.json();",
-                                                                       "pm.test(\"La nota inicia en PENDING\", () =\u003e pm.expect(note.processingStatus).to.eql(\"PENDING\"));",
-                                                                       "pm.test(\"Responde con Location\", () =\u003e pm.expect(pm.response.headers.get(\"Location\")).to.include(\"/notes/\" + note.id));",
-                                                                       "pm.collectionVariables.set(\"noteId\", note.id);"
-                                                                   ],
-                                                          "type":  "text/javascript"
-                                                      },
-                                           "listen":  "test"
-                                       }
-                                   ]
-                     },
-                     {
-                         "name":  "Listar notas con filtros (200)",
-                         "request":  {
-                                         "method":  "GET",
-                                         "header":  [
-                                                        {
-                                                            "key":  "Accept",
-                                                            "value":  "application/json"
-                                                        }
-                                                    ],
-                                         "url":  "{{baseUrl}}/notes?userId={{noteUserId}}\u0026courseId={{noteCourseId}}\u0026status=PENDING"
-                                     },
-                         "event":  [
-                                       {
-                                           "script":  {
-                                                          "exec":  [
-                                                                       "pm.test(\"Status code es 200\", () =\u003e pm.response.to.have.status(200));",
-                                                                       "const notes = pm.response.json();",
-                                                                       "pm.test(\"Incluye la nota creada\", () =\u003e pm.expect(notes.some(note =\u003e String(note.id) === String(pm.collectionVariables.get(\"noteId\")))).to.eql(true));"
-                                                                   ],
-                                                          "type":  "text/javascript"
-                                                      },
-                                           "listen":  "test"
-                                       }
-                                   ]
-                     },
-                     {
-                         "name":  "Consultar nota creada (200)",
-                         "request":  {
-                                         "method":  "GET",
-                                         "header":  [
-                                                        {
-                                                            "key":  "Accept",
-                                                            "value":  "application/json"
-                                                        }
-                                                    ],
-                                         "url":  "{{baseUrl}}/notes/{{noteId}}"
-                                     },
-                         "event":  [
-                                       {
-                                           "script":  {
-                                                          "exec":  [
-                                                                       "pm.test(\"Status code es 200\", () =\u003e pm.response.to.have.status(200));",
-                                                                       "pm.test(\"Devuelve el id solicitado\", () =\u003e pm.expect(String(pm.response.json().id)).to.eql(String(pm.collectionVariables.get(\"noteId\"))));"
-                                                                   ],
-                                                          "type":  "text/javascript"
-                                                      },
-                                           "listen":  "test"
-                                       }
-                                   ]
-                     },
-                     {
-                         "name":  "Actualizar nota (200)",
-                         "request":  {
-                                         "method":  "PUT",
-                                         "header":  [
-                                                        {
-                                                            "key":  "Accept",
-                                                            "value":  "application/json"
-                                                        },
-                                                        {
-                                                            "key":  "Content-Type",
-                                                            "value":  "application/json"
-                                                        }
-                                                    ],
-                                         "url":  "{{baseUrl}}/notes/{{noteId}}",
-                                         "body":  {
-                                                      "raw":  "{\n  \"title\": \"Nota Postman actualizada\",\n  \"content\": \"Contenido actualizado desde la colección.\",\n  \"userId\": {{noteUserId}},\n  \"courseId\": {{noteCourseId}}\n}",
-                                                      "options":  {
-                                                                      "raw":  {
-                                                                                  "language":  "json"
-                                                                              }
-                                                                  },
-                                                      "mode":  "raw"
-                                                  }
-                                     },
-                         "event":  [
-                                       {
-                                           "script":  {
-                                                          "exec":  [
-                                                                       "pm.test(\"Status code es 200\", () =\u003e pm.response.to.have.status(200));",
-                                                                       "pm.test(\"Devuelve el contenido actualizado\", () =\u003e pm.expect(pm.response.json().title).to.eql(\"Nota Postman actualizada\"));"
-                                                                   ],
-                                                          "type":  "text/javascript"
-                                                      },
-                                           "listen":  "test"
-                                       }
-                                   ]
-                     },
-                     {
-                         "name":  "Cambiar estado PENDING a PROCESSING (200)",
-                         "request":  {
-                                         "method":  "PATCH",
-                                         "header":  [
-                                                        {
-                                                            "key":  "Accept",
-                                                            "value":  "application/json"
-                                                        },
-                                                        {
-                                                            "key":  "Content-Type",
-                                                            "value":  "application/json"
-                                                        }
-                                                    ],
-                                         "url":  "{{baseUrl}}/notes/{{noteId}}/status",
-                                         "body":  {
-                                                      "raw":  "{ \"status\": \"PROCESSING\" }",
-                                                      "options":  {
-                                                                      "raw":  {
-                                                                                  "language":  "json"
-                                                                              }
-                                                                  },
-                                                      "mode":  "raw"
-                                                  }
-                                     },
-                         "event":  [
-                                       {
-                                           "script":  {
-                                                          "exec":  [
-                                                                       "pm.test(\"Status code es 200\", () =\u003e pm.response.to.have.status(200));",
-                                                                       "pm.test(\"El nuevo estado es PROCESSING\", () =\u003e pm.expect(pm.response.json().processingStatus).to.eql(\"PROCESSING\"));"
-                                                                   ],
-                                                          "type":  "text/javascript"
-                                                      },
-                                           "listen":  "test"
-                                       }
-                                   ]
-                     },
-                     {
-                         "name":  "Completar procesamiento (200)",
-                         "request":  {
-                                         "method":  "PATCH",
-                                         "header":  [
-                                                        {
-                                                            "key":  "Accept",
-                                                            "value":  "application/json"
-                                                        },
-                                                        {
-                                                            "key":  "Content-Type",
-                                                            "value":  "application/json"
-                                                        }
-                                                    ],
-                                         "url":  "{{baseUrl}}/notes/{{noteId}}/status",
-                                         "body":  {
-                                                      "raw":  "{ \"status\": \"COMPLETED\" }",
-                                                      "options":  {
-                                                                      "raw":  {
-                                                                                  "language":  "json"
-                                                                              }
-                                                                  },
-                                                      "mode":  "raw"
-                                                  }
-                                     },
-                         "event":  [
-                                       {
-                                           "script":  {
-                                                          "exec":  [
-                                                                       "pm.test(\"Status code es 200\", () =\u003e pm.response.to.have.status(200));",
-                                                                       "pm.test(\"El nuevo estado es COMPLETED\", () =\u003e pm.expect(pm.response.json().processingStatus).to.eql(\"COMPLETED\"));"
-                                                                   ],
-                                                          "type":  "text/javascript"
-                                                      },
-                                           "listen":  "test"
-                                       }
-                                   ]
-                     },
-                     {
-                         "name":  "Rechazar transición desde COMPLETED (409)",
-                         "request":  {
-                                         "method":  "PATCH",
-                                         "header":  [
-                                                        {
-                                                            "key":  "Accept",
-                                                            "value":  "application/json"
-                                                        },
-                                                        {
-                                                            "key":  "Content-Type",
-                                                            "value":  "application/json"
-                                                        }
-                                                    ],
-                                         "url":  "{{baseUrl}}/notes/{{noteId}}/status",
-                                         "body":  {
-                                                      "raw":  "{ \"status\": \"PROCESSING\" }",
-                                                      "options":  {
-                                                                      "raw":  {
-                                                                                  "language":  "json"
-                                                                              }
-                                                                  },
-                                                      "mode":  "raw"
-                                                  }
-                                     },
-                         "event":  [
-                                       {
-                                           "script":  {
-                                                          "exec":  [
-                                                                       "pm.test(\"Status code es 409\", () =\u003e pm.response.to.have.status(409));",
-                                                                       "pm.test(\"Error de conflicto con formato común\", () =\u003e { const error = pm.response.json(); pm.expect(error.status).to.eql(409); pm.expect(error).to.have.property(\"message\"); });"
-                                                                   ],
-                                                          "type":  "text/javascript"
-                                                      },
-                                           "listen":  "test"
-                                       }
-                                   ]
-                     },
-                     {
-                         "name":  "Eliminar nota (204)",
-                         "request":  {
-                                         "method":  "DELETE",
-                                         "header":  [
-                                                        {
-                                                            "key":  "Accept",
-                                                            "value":  "application/json"
-                                                        }
-                                                    ],
-                                         "url":  "{{baseUrl}}/notes/{{noteId}}"
-                                     },
-                         "event":  [
-                                       {
-                                           "script":  {
-                                                          "exec":  [
-                                                                       "pm.test(\"Status code es 204\", () =\u003e pm.response.to.have.status(204));",
-                                                                       "pm.test(\"No devuelve contenido\", () =\u003e pm.expect(pm.response.text()).to.eql(\"\"));"
-                                                                   ],
-                                                          "type":  "text/javascript"
-                                                      },
-                                           "listen":  "test"
-                                       }
-                                   ]
-                     },
-                     {
-                         "name":  "Consultar nota eliminada (404)",
-                         "request":  {
-                                         "method":  "GET",
-                                         "header":  [
-                                                        {
-                                                            "key":  "Accept",
-                                                            "value":  "application/json"
-                                                        }
-                                                    ],
-                                         "url":  "{{baseUrl}}/notes/{{noteId}}"
-                                     },
-                         "event":  [
-                                       {
-                                           "script":  {
-                                                          "exec":  [
-                                                                       "pm.test(\"Status code es 404\", () =\u003e pm.response.to.have.status(404));",
-                                                                       "pm.test(\"Error de recurso inexistente\", () =\u003e { const error = pm.response.json(); pm.expect(error.status).to.eql(404); pm.expect(error).to.have.property(\"message\"); });"
-                                                                   ],
-                                                          "type":  "text/javascript"
-                                                      },
-                                           "listen":  "test"
-                                       }
-                                   ]
-                     }
-                 ]
+      "name":  "Notas (Sharon)",
+      "description":  "CRUD y filtros de notas, validación de solicitud, códigos HTTP y transiciones del estado de procesamiento. Ejecutar en orden de arriba hacia abajo.",
+      "item":  [
+        {
+          "name":  "Preparar IDs desde notas de ejemplo (200)",
+          "request":  {
+            "method":  "GET",
+            "header":  [
+              {
+                "key":  "Accept",
+                "value":  "application/json"
+              }
+            ],
+            "url":  "{{baseUrl}}/notes"
+          },
+          "description":  "Toma userId y courseId de los datos semilla; ejecutar antes de las demás peticiones.",
+          "event":  [
+            {
+              "script":  {
+                "exec":  [
+                  "pm.test(\"Status code es 200\", () =\u003e pm.response.to.have.status(200));",
+                  "const notes = pm.response.json();",
+                  "const sample = notes.find(note =\u003e note.courseCode === \"EIF411\");",
+                  "pm.test(\"Existe la nota sembrada del curso EIF411\", () =\u003e pm.expect(sample).to.exist);",
+                  "pm.collectionVariables.set(\"noteUserId\", sample.userId);",
+                  "pm.collectionVariables.set(\"noteCourseId\", sample.courseId);"
+                ],
+                "type":  "text/javascript"
+              },
+              "listen":  "test"
+            }
+          ]
+        },
+        {
+          "name":  "Crear nota con título vacío (400)",
+          "request":  {
+            "method":  "POST",
+            "header":  [
+              {
+                "key":  "Accept",
+                "value":  "application/json"
+              },
+              {
+                "key":  "Content-Type",
+                "value":  "application/json"
+              }
+            ],
+            "url":  "{{baseUrl}}/notes",
+            "body":  {
+              "raw":  "{\n  \"title\": \"\",\n  \"content\": \"Contenido de prueba\",\n  \"userId\": {{noteUserId}},\n  \"courseId\": {{noteCourseId}}\n}",
+              "options":  {
+                "raw":  {
+                  "language":  "json"
+                }
+              },
+              "mode":  "raw"
+            }
+          },
+          "event":  [
+            {
+              "script":  {
+                "exec":  [
+                  "pm.test(\"Status code es 400\", () =\u003e pm.response.to.have.status(400));",
+                  "const error = pm.response.json();",
+                  "pm.test(\"Error de validación con formato común\", () =\u003e { pm.expect(error.status).to.eql(400); pm.expect(error).to.have.property(\"fieldErrors\"); });"
+                ],
+                "type":  "text/javascript"
+              },
+              "listen":  "test"
+            }
+          ]
+        },
+        {
+          "name":  "Crear nota (201)",
+          "request":  {
+            "method":  "POST",
+            "header":  [
+              {
+                "key":  "Accept",
+                "value":  "application/json"
+              },
+              {
+                "key":  "Content-Type",
+                "value":  "application/json"
+              }
+            ],
+            "url":  "{{baseUrl}}/notes",
+            "body":  {
+              "raw":  "{\n  \"title\": \"Nota Postman\",\n  \"content\": \"Contenido creado desde la colección de Postman.\",\n  \"userId\": {{noteUserId}},\n  \"courseId\": {{noteCourseId}}\n}",
+              "options":  {
+                "raw":  {
+                  "language":  "json"
+                }
+              },
+              "mode":  "raw"
+            }
+          },
+          "event":  [
+            {
+              "script":  {
+                "exec":  [
+                  "pm.test(\"Status code es 201\", () =\u003e pm.response.to.have.status(201));",
+                  "const note = pm.response.json();",
+                  "pm.test(\"La nota inicia en PENDING\", () =\u003e pm.expect(note.processingStatus).to.eql(\"PENDING\"));",
+                  "pm.test(\"Responde con Location\", () =\u003e pm.expect(pm.response.headers.get(\"Location\")).to.include(\"/notes/\" + note.id));",
+                  "pm.collectionVariables.set(\"noteId\", note.id);"
+                ],
+                "type":  "text/javascript"
+              },
+              "listen":  "test"
+            }
+          ]
+        },
+        {
+          "name":  "Listar notas con filtros (200)",
+          "request":  {
+            "method":  "GET",
+            "header":  [
+              {
+                "key":  "Accept",
+                "value":  "application/json"
+              }
+            ],
+            "url":  "{{baseUrl}}/notes?userId={{noteUserId}}\u0026courseId={{noteCourseId}}\u0026status=PENDING"
+          },
+          "event":  [
+            {
+              "script":  {
+                "exec":  [
+                  "pm.test(\"Status code es 200\", () =\u003e pm.response.to.have.status(200));",
+                  "const notes = pm.response.json();",
+                  "pm.test(\"Incluye la nota creada\", () =\u003e pm.expect(notes.some(note =\u003e String(note.id) === String(pm.collectionVariables.get(\"noteId\")))).to.eql(true));"
+                ],
+                "type":  "text/javascript"
+              },
+              "listen":  "test"
+            }
+          ]
+        },
+        {
+          "name":  "Consultar nota creada (200)",
+          "request":  {
+            "method":  "GET",
+            "header":  [
+              {
+                "key":  "Accept",
+                "value":  "application/json"
+              }
+            ],
+            "url":  "{{baseUrl}}/notes/{{noteId}}"
+          },
+          "event":  [
+            {
+              "script":  {
+                "exec":  [
+                  "pm.test(\"Status code es 200\", () =\u003e pm.response.to.have.status(200));",
+                  "pm.test(\"Devuelve el id solicitado\", () =\u003e pm.expect(String(pm.response.json().id)).to.eql(String(pm.collectionVariables.get(\"noteId\"))));"
+                ],
+                "type":  "text/javascript"
+              },
+              "listen":  "test"
+            }
+          ]
+        },
+        {
+          "name":  "Actualizar nota (200)",
+          "request":  {
+            "method":  "PUT",
+            "header":  [
+              {
+                "key":  "Accept",
+                "value":  "application/json"
+              },
+              {
+                "key":  "Content-Type",
+                "value":  "application/json"
+              }
+            ],
+            "url":  "{{baseUrl}}/notes/{{noteId}}",
+            "body":  {
+              "raw":  "{\n  \"title\": \"Nota Postman actualizada\",\n  \"content\": \"Contenido actualizado desde la colección.\",\n  \"userId\": {{noteUserId}},\n  \"courseId\": {{noteCourseId}}\n}",
+              "options":  {
+                "raw":  {
+                  "language":  "json"
+                }
+              },
+              "mode":  "raw"
+            }
+          },
+          "event":  [
+            {
+              "script":  {
+                "exec":  [
+                  "pm.test(\"Status code es 200\", () =\u003e pm.response.to.have.status(200));",
+                  "pm.test(\"Devuelve el contenido actualizado\", () =\u003e pm.expect(pm.response.json().title).to.eql(\"Nota Postman actualizada\"));"
+                ],
+                "type":  "text/javascript"
+              },
+              "listen":  "test"
+            }
+          ]
+        },
+        {
+          "name":  "Cambiar estado PENDING a PROCESSING (200)",
+          "request":  {
+            "method":  "PATCH",
+            "header":  [
+              {
+                "key":  "Accept",
+                "value":  "application/json"
+              },
+              {
+                "key":  "Content-Type",
+                "value":  "application/json"
+              }
+            ],
+            "url":  "{{baseUrl}}/notes/{{noteId}}/status",
+            "body":  {
+              "raw":  "{ \"status\": \"PROCESSING\" }",
+              "options":  {
+                "raw":  {
+                  "language":  "json"
+                }
+              },
+              "mode":  "raw"
+            }
+          },
+          "event":  [
+            {
+              "script":  {
+                "exec":  [
+                  "pm.test(\"Status code es 200\", () =\u003e pm.response.to.have.status(200));",
+                  "pm.test(\"El nuevo estado es PROCESSING\", () =\u003e pm.expect(pm.response.json().processingStatus).to.eql(\"PROCESSING\"));"
+                ],
+                "type":  "text/javascript"
+              },
+              "listen":  "test"
+            }
+          ]
+        },
+        {
+          "name":  "Completar procesamiento (200)",
+          "request":  {
+            "method":  "PATCH",
+            "header":  [
+              {
+                "key":  "Accept",
+                "value":  "application/json"
+              },
+              {
+                "key":  "Content-Type",
+                "value":  "application/json"
+              }
+            ],
+            "url":  "{{baseUrl}}/notes/{{noteId}}/status",
+            "body":  {
+              "raw":  "{ \"status\": \"COMPLETED\" }",
+              "options":  {
+                "raw":  {
+                  "language":  "json"
+                }
+              },
+              "mode":  "raw"
+            }
+          },
+          "event":  [
+            {
+              "script":  {
+                "exec":  [
+                  "pm.test(\"Status code es 200\", () =\u003e pm.response.to.have.status(200));",
+                  "pm.test(\"El nuevo estado es COMPLETED\", () =\u003e pm.expect(pm.response.json().processingStatus).to.eql(\"COMPLETED\"));"
+                ],
+                "type":  "text/javascript"
+              },
+              "listen":  "test"
+            }
+          ]
+        },
+        {
+          "name":  "Rechazar transición desde COMPLETED (409)",
+          "request":  {
+            "method":  "PATCH",
+            "header":  [
+              {
+                "key":  "Accept",
+                "value":  "application/json"
+              },
+              {
+                "key":  "Content-Type",
+                "value":  "application/json"
+              }
+            ],
+            "url":  "{{baseUrl}}/notes/{{noteId}}/status",
+            "body":  {
+              "raw":  "{ \"status\": \"PROCESSING\" }",
+              "options":  {
+                "raw":  {
+                  "language":  "json"
+                }
+              },
+              "mode":  "raw"
+            }
+          },
+          "event":  [
+            {
+              "script":  {
+                "exec":  [
+                  "pm.test(\"Status code es 409\", () =\u003e pm.response.to.have.status(409));",
+                  "pm.test(\"Error de conflicto con formato común\", () =\u003e { const error = pm.response.json(); pm.expect(error.status).to.eql(409); pm.expect(error).to.have.property(\"message\"); });"
+                ],
+                "type":  "text/javascript"
+              },
+              "listen":  "test"
+            }
+          ]
+        },
+        {
+          "name":  "Eliminar nota (204)",
+          "request":  {
+            "method":  "DELETE",
+            "header":  [
+              {
+                "key":  "Accept",
+                "value":  "application/json"
+              }
+            ],
+            "url":  "{{baseUrl}}/notes/{{noteId}}"
+          },
+          "event":  [
+            {
+              "script":  {
+                "exec":  [
+                  "pm.test(\"Status code es 204\", () =\u003e pm.response.to.have.status(204));",
+                  "pm.test(\"No devuelve contenido\", () =\u003e pm.expect(pm.response.text()).to.eql(\"\"));"
+                ],
+                "type":  "text/javascript"
+              },
+              "listen":  "test"
+            }
+          ]
+        },
+        {
+          "name":  "Consultar nota eliminada (404)",
+          "request":  {
+            "method":  "GET",
+            "header":  [
+              {
+                "key":  "Accept",
+                "value":  "application/json"
+              }
+            ],
+            "url":  "{{baseUrl}}/notes/{{noteId}}"
+          },
+          "event":  [
+            {
+              "script":  {
+                "exec":  [
+                  "pm.test(\"Status code es 404\", () =\u003e pm.response.to.have.status(404));",
+                  "pm.test(\"Error de recurso inexistente\", () =\u003e { const error = pm.response.json(); pm.expect(error.status).to.eql(404); pm.expect(error).to.have.property(\"message\"); });"
+                ],
+                "type":  "text/javascript"
+              },
+              "listen":  "test"
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "Cursos, Inscripciones y Logs (Alice)",
@@ -2696,7 +2696,8 @@
               }
             }
           ]
-        },
+        }
+      ,
         {
           "name": "30 - Referencia de logs reales del usuario demo - 200",
           "request": {
@@ -3081,6 +3082,1197 @@
                   "if (pm.response.code === 204) ['academicCourseId', 'academicCourseCode', 'academicBeforeLOGIN_FAILED', 'academicBeforeLOGIN'].forEach(key => pm.collectionVariables.unset(key));"
                 ]
               }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Evaluaciones (Dayron)",
+      "description": "Evaluaciones e intentos: crear y consultar evaluaciones de un curso, iniciar un intento, enviar respuestas, puntaje y reenvío de un intento completado (409). Usa IDs dinámicos y un curso temporal; ejecutar en orden de arriba hacia abajo.",
+      "item": [
+        {
+          "name": "01 - Preparar usuarios de ejemplo (200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users"
+          },
+          "description": "Toma el usuario demo y el usuario profe de los datos semilla; ejecutar antes de las demás peticiones.",
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 200\", () => pm.response.to.have.status(200));",
+                  "const users = pm.response.json();",
+                  "const demo = users.find(user => user.email === \"demo@apunteia.com\");",
+                  "const profe = users.find(user => user.email === \"profe@apunteia.com\");",
+                  "pm.test(\"Existen los usuarios demo y profe\", () => { pm.expect(demo).to.exist; pm.expect(profe).to.exist; });",
+                  "pm.collectionVariables.set(\"evalUserId\", demo.id);",
+                  "pm.collectionVariables.set(\"evalOtherUserId\", profe.id);"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "02 - Preparar curso EIF411 de ejemplo (200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/courses"
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 200\", () => pm.response.to.have.status(200));",
+                  "const seedCourse = pm.response.json().find(course => course.code === \"EIF411\");",
+                  "pm.test(\"Existe el curso sembrado EIF411\", () => pm.expect(seedCourse).to.exist);",
+                  "pm.collectionVariables.set(\"evalSeedCourseId\", seedCourse.id);"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "03 - Listar evaluaciones de ejemplo del curso EIF411 (200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{evalSeedCourseId}}/assessments"
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 200\", () => pm.response.to.have.status(200));",
+                  "const list = pm.response.json();",
+                  "pm.test(\"Incluye la evaluación sembrada\", () => pm.expect(list.map(a => a.title)).to.include(\"Introducción al Backend\"));",
+                  "pm.test(\"Todas pertenecen al curso\", () => list.forEach(a => pm.expect(a.courseId).to.eql(Number(pm.collectionVariables.get(\"evalSeedCourseId\")))));",
+                  "pm.test(\"No expone la opción correcta\", () => pm.expect(list[0].questions[0]).to.not.have.property(\"correctOptionIndex\"));"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "04 - Crear curso temporal (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/courses",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"{{evalCourseCode}}\",\n  \"name\": \"Curso temporal de evaluaciones\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "description": "Las evaluaciones no se pueden borrar por la API, así que el curso temporal y sus evaluaciones permanecen en la base de datos.",
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "const runId = Date.now();",
+                  "pm.collectionVariables.set(\"evalRunId\", runId);",
+                  "pm.collectionVariables.set(\"evalCourseCode\", \"PM-\" + runId);"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "prerequest"
+            },
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"evalCourseId\", pm.response.json().id);"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "05 - Listar evaluaciones de un curso sin evaluaciones (200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{evalCourseId}}/assessments"
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"La lista está vacía\", () => pm.expect(pm.response.json()).to.eql([]));"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "06 - Crear evaluación (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{evalCourseId}}/assessments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Quiz Postman {{evalRunId}}\",\n  \"description\": \"Evaluación creada desde Postman\",\n  \"type\": \"QUIZ\",\n  \"difficulty\": \"EASY\",\n  \"durationMinutes\": 10,\n  \"createdByUserId\": {{evalOtherUserId}},\n  \"questions\": [\n    {\n      \"text\": \"¿Qué método HTTP crea un recurso?\",\n      \"options\": [\"GET\", \"POST\", \"DELETE\"],\n      \"correctOptionIndex\": 1\n    },\n    {\n      \"text\": \"¿Qué abstrae el patrón Repositorio?\",\n      \"options\": [\"El acceso a datos\", \"La interfaz\"],\n      \"correctOptionIndex\": 0\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 201\", () => pm.response.to.have.status(201));",
+                  "const assessment = pm.response.json();",
+                  "pm.test(\"Responde con Location\", () => pm.expect(pm.response.headers.get(\"Location\")).to.include(\"/assessments/\" + assessment.id));",
+                  "pm.test(\"Asociada al curso y al creador\", () => { pm.expect(assessment.courseId).to.eql(Number(pm.collectionVariables.get(\"evalCourseId\"))); pm.expect(assessment.createdByUserId).to.eql(Number(pm.collectionVariables.get(\"evalOtherUserId\"))); });",
+                  "pm.test(\"Conserva tipo, dificultad y preguntas\", () => { pm.expect(assessment.type).to.eql(\"QUIZ\"); pm.expect(assessment.difficulty).to.eql(\"EASY\"); pm.expect(assessment.totalQuestions).to.eql(2); });",
+                  "pm.test(\"No expone la opción correcta\", () => assessment.questions.forEach(q => pm.expect(q).to.not.have.property(\"correctOptionIndex\")));",
+                  "pm.collectionVariables.set(\"evalAssessmentId\", assessment.id);"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "07 - Listar evaluaciones del curso (200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{evalCourseId}}/assessments"
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 200\", () => pm.response.to.have.status(200));",
+                  "const list = pm.response.json();",
+                  "pm.test(\"Contiene solo la evaluación creada\", () => { pm.expect(list.length).to.eql(1); pm.expect(list[0].id).to.eql(Number(pm.collectionVariables.get(\"evalAssessmentId\"))); });"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "08 - Consultar evaluación por id (200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/assessments/{{evalAssessmentId}}"
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Devuelve la evaluación pedida\", () => pm.expect(pm.response.json().id).to.eql(Number(pm.collectionVariables.get(\"evalAssessmentId\"))));",
+                  "pm.test(\"Tiene 2 preguntas con 3 y 2 opciones\", () => { const q = pm.response.json().questions; pm.expect(q.map(x => x.options.length)).to.eql([3, 2]); });"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "09 - Consultar evaluación inexistente (404)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/assessments/999999999"
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"El mensaje menciona: No existe una evaluación con id\", () => pm.expect(pm.response.json().message).to.include(\"No existe una evaluación con id\"));"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "10 - Consultar evaluación con id no numérico (400)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/assessments/abc"
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 400\", () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "11 - Listar evaluaciones de curso inexistente (404)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/999999999/assessments"
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"El mensaje menciona: No existe un curso con id\", () => pm.expect(pm.response.json().message).to.include(\"No existe un curso con id\"));"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "12 - Crear evaluación en curso inexistente (404)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/999999999/assessments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Evaluación sin curso\",\n  \"questions\": [\n    {\n      \"text\": \"Pregunta\",\n      \"options\": [\"A\", \"B\"],\n      \"correctOptionIndex\": 0\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"El mensaje menciona: No existe un curso con id\", () => pm.expect(pm.response.json().message).to.include(\"No existe un curso con id\"));"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "13 - Crear evaluación con campos inválidos (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{evalCourseId}}/assessments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"\",\n  \"questions\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Reporta error en title\", () => pm.expect(pm.response.json().fieldErrors).to.have.property(\"title\"));",
+                  "pm.test(\"Reporta error en questions\", () => pm.expect(pm.response.json().fieldErrors).to.have.property(\"questions\"));"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "14 - Crear evaluación con opción correcta fuera de rango (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{evalCourseId}}/assessments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Evaluación inválida {{evalRunId}}\",\n  \"questions\": [\n    {\n      \"text\": \"Pregunta\",\n      \"options\": [\"A\", \"B\"],\n      \"correctOptionIndex\": 5\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"El mensaje menciona: fuera de rango\", () => pm.expect(pm.response.json().message).to.include(\"fuera de rango\"));"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "15 - Crear evaluación con tipo inexistente (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{evalCourseId}}/assessments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Evaluación tipo inválido {{evalRunId}}\",\n  \"questions\": [\n    {\n      \"text\": \"Pregunta\",\n      \"options\": [\"A\", \"B\"],\n      \"correctOptionIndex\": 0\n    }\n  ],\n  \"type\": \"FOO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 400\", () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "16 - Crear evaluación con título duplicado (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{evalCourseId}}/assessments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Quiz Postman {{evalRunId}}\",\n  \"questions\": [\n    {\n      \"text\": \"Pregunta\",\n      \"options\": [\"A\", \"B\"],\n      \"correctOptionIndex\": 0\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"El mensaje menciona: Ya existe una evaluación con el título\", () => pm.expect(pm.response.json().message).to.include(\"Ya existe una evaluación con el título\"));"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "17 - Crear evaluación con creador inexistente (404)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{evalCourseId}}/assessments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Evaluación creador inválido {{evalRunId}}\",\n  \"questions\": [\n    {\n      \"text\": \"Pregunta\",\n      \"options\": [\"A\", \"B\"],\n      \"correctOptionIndex\": 0\n    }\n  ],\n  \"createdByUserId\": 999999999\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"El mensaje menciona: No existe un usuario con id\", () => pm.expect(pm.response.json().message).to.include(\"No existe un usuario con id\"));"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "18 - Crear evaluación con Content-Type incorrecto (415)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "text/plain"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{evalCourseId}}/assessments",
+            "body": {
+              "mode": "raw",
+              "raw": "title=sin json",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 415\", () => pm.response.to.have.status(415));"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "19 - Iniciar intento (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/assessments/{{evalAssessmentId}}/attempts",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{evalUserId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 201\", () => pm.response.to.have.status(201));",
+                  "const attempt = pm.response.json();",
+                  "pm.test(\"Responde con Location\", () => pm.expect(pm.response.headers.get(\"Location\")).to.include(\"/attempts/\" + attempt.id));",
+                  "pm.test(\"Inicia en progreso y sin puntaje\", () => { pm.expect(attempt.status).to.eql(\"IN_PROGRESS\"); pm.expect(attempt.score).to.eql(null); pm.expect(attempt.completedAt).to.eql(null); pm.expect(attempt.answers).to.eql([]); });",
+                  "pm.collectionVariables.set(\"evalAttemptId\", attempt.id);"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "20 - Iniciar segundo intento en progreso (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/assessments/{{evalAssessmentId}}/attempts",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{evalUserId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"El mensaje menciona: ya tiene un intento en progreso\", () => pm.expect(pm.response.json().message).to.include(\"ya tiene un intento en progreso\"));"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "21 - Iniciar intento sin usuario (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/assessments/{{evalAssessmentId}}/attempts",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Reporta error en userId\", () => pm.expect(pm.response.json().fieldErrors).to.have.property(\"userId\"));"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "22 - Iniciar intento con usuario inexistente (404)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/assessments/{{evalAssessmentId}}/attempts",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": 999999999\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"El mensaje menciona: No existe un usuario con id\", () => pm.expect(pm.response.json().message).to.include(\"No existe un usuario con id\"));"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "23 - Iniciar intento en evaluación inexistente (404)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/assessments/999999999/attempts",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{evalUserId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"El mensaje menciona: No existe una evaluación con id\", () => pm.expect(pm.response.json().message).to.include(\"No existe una evaluación con id\"));"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "24 - Consultar intento en progreso (200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/attempts/{{evalAttemptId}}"
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Sigue en progreso\", () => pm.expect(pm.response.json().status).to.eql(\"IN_PROGRESS\"));"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "25 - Enviar intento con cantidad de respuestas incorrecta (400)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/attempts/{{evalAttemptId}}/submit",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": [1]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"El mensaje menciona: Se esperaban 2 respuestas\", () => pm.expect(pm.response.json().message).to.include(\"Se esperaban 2 respuestas\"));"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "26 - Enviar intento con opción fuera de rango (400)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/attempts/{{evalAttemptId}}/submit",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": [1, 9]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"El mensaje menciona: fuera del rango\", () => pm.expect(pm.response.json().message).to.include(\"fuera del rango\"));"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "27 - Enviar intento sin respuestas (400)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/attempts/{{evalAttemptId}}/submit",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Reporta error en answers\", () => pm.expect(pm.response.json().fieldErrors).to.have.property(\"answers\"));"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "28 - Enviar intento inexistente (404)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/attempts/999999999/submit",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": [1, 0]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"El mensaje menciona: No existe un intento con id\", () => pm.expect(pm.response.json().message).to.include(\"No existe un intento con id\"));"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "29 - Enviar respuestas del intento (200)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/attempts/{{evalAttemptId}}/submit",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": [1, 1]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 200\", () => pm.response.to.have.status(200));",
+                  "const attempt = pm.response.json();",
+                  "pm.test(\"Queda completado con puntaje 50\", () => { pm.expect(attempt.status).to.eql(\"COMPLETED\"); pm.expect(attempt.score).to.eql(50); pm.expect(attempt.completedAt).to.not.eql(null); });",
+                  "pm.test(\"Califica cada respuesta\", () => pm.expect(attempt.answers.map(a => a.correct)).to.eql([true, false]));",
+                  "pm.test(\"Duración no negativa\", () => pm.expect(attempt.durationSeconds).to.be.at.least(0));"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "30 - Enviar intento ya completado (409)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/attempts/{{evalAttemptId}}/submit",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": [1, 0]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"El mensaje menciona: ya fue completado\", () => pm.expect(pm.response.json().message).to.include(\"ya fue completado\"));"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "31 - Consultar intento: conserva el puntaje original (200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/attempts/{{evalAttemptId}}"
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"El reenvío no cambió el resultado\", () => { const a = pm.response.json(); pm.expect(a.status).to.eql(\"COMPLETED\"); pm.expect(a.score).to.eql(50); });"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "32 - Iniciar nuevo intento tras completar el anterior (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/assessments/{{evalAssessmentId}}/attempts",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{evalUserId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Nuevo intento en progreso\", () => pm.expect(pm.response.json().status).to.eql(\"IN_PROGRESS\"));",
+                  "pm.collectionVariables.set(\"evalSecondAttemptId\", pm.response.json().id);"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "33 - Listar intentos del usuario (200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/{{evalUserId}}/attempts"
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 200\", () => pm.response.to.have.status(200));",
+                  "const attempts = pm.response.json();",
+                  "pm.test(\"Todos son del usuario\", () => attempts.forEach(a => pm.expect(a.userId).to.eql(Number(pm.collectionVariables.get(\"evalUserId\")))));",
+                  "pm.test(\"Incluye los dos intentos creados\", () => { const ids = attempts.map(a => a.id); pm.expect(ids).to.include(Number(pm.collectionVariables.get(\"evalAttemptId\"))); pm.expect(ids).to.include(Number(pm.collectionVariables.get(\"evalSecondAttemptId\"))); });",
+                  "pm.test(\"El más reciente va primero\", () => pm.expect(attempts[0].id).to.eql(Number(pm.collectionVariables.get(\"evalSecondAttemptId\"))));"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "34 - Listar intentos de usuario inexistente (404)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/999999999/attempts"
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"El mensaje menciona: No existe un usuario con id\", () => pm.expect(pm.response.json().message).to.include(\"No existe un usuario con id\"));"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "35 - Método no permitido en intentos (405)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/attempts/{{evalAttemptId}}"
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 405\", () => pm.response.to.have.status(405));"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
             }
           ]
         }
