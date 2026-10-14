@@ -105,6 +105,110 @@ postman/
 - Estado: `DELETED` es un **borrado lógico** y es final (no se puede reactivar → `409`). Pedir el mismo estado que ya tiene devuelve `200` sin cambios.
 - El `token` por ahora es opaco (`apunteia-<uuid>`); en el módulo *Security with JWT* se reemplaza `TokenGenerator` por un JWT.
 
+## Cursos, Inscripciones y Auditoría
+
+El módulo del issue #22 usa Controllers para recibir HTTP y validar DTOs, Services para
+aplicar reglas de negocio y transacciones, y Repositories para acceder a datos.
+Los Mappers convierten las entidades en DTOs de respuesta, sin exponer entidades JPA.
+
+### Cursos
+
+| Método | Ruta | Entrada | Respuestas |
+|---|---|---|---|
+| `GET` | `/courses` | — | `200` lista de `CourseResponse` |
+| `GET` | `/courses/{id}` | ID del curso | `200` `CourseResponse` · `400` · `404` |
+| `POST` | `/courses` | `CreateCourseRequest`: `code`, `name`, `description` opcional | `201` `CourseResponse` + `Location` · `400` · `409` · `415` |
+| `PUT` | `/courses/{id}` | `UpdateCourseRequest`: `code`, `name`, `description` opcional | `200` `CourseResponse` · `400` · `404` · `409` · `415` |
+| `DELETE` | `/courses/{id}` | ID del curso | `204` · `400` · `404` · `409` |
+
+### Inscripciones
+
+| Método | Ruta | Entrada | Respuestas |
+|---|---|---|---|
+| `GET` | `/enrollments` | Filtros opcionales `userId`, `courseId` | `200` lista de `EnrollmentResponse` · `400` |
+| `GET` | `/enrollments/{id}` | ID de la inscripción | `200` `EnrollmentResponse` · `400` · `404` |
+| `POST` | `/enrollments` | `CreateEnrollmentRequest`: `userId`, `courseId` obligatorios y positivos | `201` `EnrollmentResponse` + `Location` · `400` · `404` · `409` · `415` |
+| `DELETE` | `/enrollments/{id}` | ID de la inscripción | `204` · `400` · `404` |
+
+Filtros existentes, que pueden combinarse:
+
+- `GET /enrollments?userId={id}`
+- `GET /enrollments?courseId={id}`
+- `GET /enrollments?userId={id}&courseId={id}`
+
+### Aliases solicitados por el issue
+
+Las rutas originales se conservan. Estos aliases delegan al mismo `EnrollmentService`:
+
+| Método | Ruta | Entrada | Respuestas |
+|---|---|---|---|
+| `POST` | `/courses/{id}/enrollments` | `EnrollUserRequest`: `{ "userId": 1 }`; el curso se toma de la ruta | `201` `EnrollmentResponse` + `Location` · `400` · `404` · `409` · `415` |
+| `GET` | `/users/{id}/enrollments` | Usuario indicado en la ruta | `200` lista de `EnrollmentResponse` · `400` |
+
+`EnrollUserRequest.userId` es obligatorio y positivo. Las consultas de inscripciones
+devuelven `200` con una lista vacía cuando no hay coincidencias, incluso para un usuario inexistente.
+
+### Auditoría
+
+| Método | Ruta | Entrada | Respuestas |
+|---|---|---|---|
+| `GET` | `/security-logs` | Filtros opcionales `userId`, `eventType`, `anonymousOnly` | `200` lista de `SecurityLogResponse` · `400` |
+| `GET` | `/security-logs/{id}` | ID del evento | `200` `SecurityLogResponse` · `400` · `404` |
+
+Filtros existentes:
+
+- `GET /security-logs?userId={id}`
+- `GET /security-logs?eventType={tipo}`
+- `GET /security-logs?anonymousOnly=true`
+
+Los filtros se pueden combinar; `anonymousOnly=true` selecciona únicamente eventos sin usuario.
+Los resultados se devuelven del más reciente al más antiguo, con desempate por ID descendente.
+La API de Security Logs es de solo lectura: no permite crear, modificar ni eliminar eventos por HTTP.
+Los métodos HTTP no admitidos devuelven `405 Method Not Allowed`.
+
+### Respuestas y reglas de negocio
+
+- `200 OK`: consulta o actualización correcta; las listas pueden estar vacías.
+- `201 Created`: creación correcta. `POST /courses` devuelve `Location: /courses/{id}`;
+  ambos POST de inscripción devuelven `Location: /enrollments/{id}`. La URL puede incluir el host.
+- `204 No Content`: eliminación correcta, sin cuerpo de respuesta.
+- `400 Bad Request`: DTO inválido, JSON mal formado o parámetros con formato incorrecto.
+- `404 Not Found`: recurso solicitado inexistente o usuario/curso inexistente al inscribir.
+- `405 Method Not Allowed`: método HTTP no admitido para la ruta.
+- `409 Conflict`: código de curso o inscripción duplicados, o eliminación de un curso con inscripciones.
+- `415 Unsupported Media Type`: tipo de contenido no admitido; enviar `application/json` en las operaciones con body.
+
+El código del curso debe ser único y se normaliza quitando espacios en los extremos.
+No se puede inscribir a un usuario inexistente ni en un curso inexistente, y un usuario
+no puede inscribirse dos veces en el mismo curso. No se puede eliminar un curso con
+inscripciones activas: las relaciones existentes impiden el borrado y la API devuelve `409`.
+
+Los Security Logs se generan internamente por `LOGIN`, `LOGIN_FAILED`, `USER_REGISTERED`
+y `USER_STATUS_CHANGED`. `record` participa en la transacción actual para guardar los
+eventos exitosos junto con su operación y asociados al usuario correspondiente.
+`recordIndependent` usa `REQUIRES_NEW`: `LOGIN_FAILED` se guarda en una transacción
+independiente y sobrevive al rollback del login. Un log puede ser anónimo cuando no existe
+un usuario identificable. El tipo de evento es obligatorio y los detalles se limitan a 1000 caracteres.
+
+### Verificación del módulo
+
+Los DTOs son `CreateCourseRequest`, `UpdateCourseRequest`, `CourseResponse`,
+`CreateEnrollmentRequest`, `EnrollUserRequest`, `EnrollmentResponse` y `SecurityLogResponse`.
+Los Mappers son `CourseMapper`, `EnrollmentMapper` y `SecurityLogMapper`; los servicios
+son `CourseService`, `EnrollmentService` y `SecurityLogService`.
+
+La carpeta **Cursos, Inscripciones y Logs (Alice)** de la colección Postman contiene
+**40 requests**. Ejecutarla completa y en orden: conserva las 29 originales y agrega
+comprobaciones de logs reales, aliases y limpieza. Usa IDs dinámicos y elimina los cursos
+e inscripciones temporales; los eventos de auditoría se conservan.
+
+Para verificar el backend desde PowerShell:
+
+```powershell
+.\gradlew.bat clean test --console=plain
+docker compose ps
+```
+
 ### Formato común de error
 
 Todas las respuestas de error tienen esta forma:
