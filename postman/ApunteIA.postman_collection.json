@@ -347,7 +347,6 @@
                 "type": "text/javascript",
                 "exec": [
                   "// Arma un JWT HS256 con exp en el pasado, firmado con el secreto de desarrollo (jwtDevSecret).",
-                  "const CryptoJS = require(\"crypto-js\");",
                   "const b64url = (wordArray) => CryptoJS.enc.Base64.stringify(wordArray).replace(/=+$/, \"\").replace(/\\+/g, \"-\").replace(/\\//g, \"_\");",
                   "const now = Math.floor(Date.now() / 1000);",
                   "const header = b64url(CryptoJS.enc.Utf8.parse(JSON.stringify({ alg: \"HS256\", typ: \"JWT\" })));",
