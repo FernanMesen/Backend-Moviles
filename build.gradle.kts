@@ -29,8 +29,8 @@ dependencies {
     implementation("io.jsonwebtoken:jjwt-api:0.12.6")                          // generar y validar los JWT
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
-    implementation("org.springframework.security:spring-security-crypto") // solo BCrypt, sin bloquear endpoints
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation("org.springframework.boot:spring-boot-starter-security")   // Security with JWT: filtro de autenticación + BCrypt
+    //    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
 
     runtimeOnly("com.h2database:h2")
