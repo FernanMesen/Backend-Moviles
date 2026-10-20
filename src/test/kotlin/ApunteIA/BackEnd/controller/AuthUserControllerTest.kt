@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.http.MediaType
 import org.springframework.test.context.TestPropertySource
 import org.springframework.test.web.servlet.MockMvc
@@ -22,6 +23,8 @@ import java.util.UUID
  */
 @SpringBootTest
 @AutoConfigureMockMvc
+// Estas pruebas validan la lógica de cada endpoint; la seguridad JWT se prueba en SecurityJwtTest
+@WithMockUser(roles = ["ADMIN"])
 @TestPropertySource(properties = ["spring.datasource.url=jdbc:h2:mem:apunteia-web;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE"])
 class AuthUserControllerTest @Autowired constructor(
     private val mockMvc: MockMvc,

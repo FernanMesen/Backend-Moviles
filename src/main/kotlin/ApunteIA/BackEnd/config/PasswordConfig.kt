@@ -7,7 +7,7 @@ import org.springframework.security.crypto.password.PasswordEncoder
 
 /**
  * Encoder de contraseñas usado para llenar users.password_hash.
- * Cuando llegue el módulo "Security with JWT" se reutiliza este mismo bean.
+ * Lo usan el login (AuthServiceImpl) y los seeders; la configuración de JWT está en SecurityConfig.
  */
 @Configuration
 class PasswordConfig {
