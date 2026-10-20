@@ -42,7 +42,8 @@ class AuthUserControllerTest @Autowired constructor(
             content = """{"email":"demo@apunteia.com","password":"123456"}"""
         }.andExpect {
             status { isOk() }
-            jsonPath("$.token") { value(startsWith("apunteia-")) }
+            jsonPath("$.token") { value(startsWith("eyJ")) } // JWT: header.payload.firma
+            jsonPath("$.tokenType") { value("Bearer") }
             jsonPath("$.userName") { value("Maya Rodríguez") }
         }
     }

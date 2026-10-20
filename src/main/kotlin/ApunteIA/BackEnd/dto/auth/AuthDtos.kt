@@ -17,9 +17,15 @@ data class LoginRequest(
     val password: String = "",
 )
 
-/** Salida de POST /auth/login. Compatible con LoginResponseDto del FrontEnd ({ token, userName }). */
+/**
+ * Salida de POST /auth/login. Compatible con LoginResponseDto del FrontEnd ({ token, userName }).
+ * `token` es un JWT: el cliente lo manda en cada petición como `Authorization: Bearer <token>`.
+ */
 data class LoginResponse(
     val token: String,
+    val tokenType: String = "Bearer",
+    /** Segundos de vida del token. */
+    val expiresIn: Long,
     val userName: String,
     val userId: Long,
     val email: String,

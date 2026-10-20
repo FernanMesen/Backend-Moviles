@@ -42,8 +42,9 @@ class UserMapper {
         authProvider = AuthProvider.LOCAL,
     )
 
-    fun toLoginResponse(user: User, token: String): LoginResponse = LoginResponse(
+    fun toLoginResponse(user: User, token: String, expiresIn: Long): LoginResponse = LoginResponse(
         token = token,
+        expiresIn = expiresIn,
         userName = user.fullName,
         userId = requireNotNull(user.id),
         email = user.email,

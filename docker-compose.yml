@@ -27,6 +27,7 @@ services:
       DB_URL: jdbc:postgresql://db:5432/apunteia
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-apunteia-jwt-secret-cambiar-en-produccion-0123456789}
     ports:
       - "8080:8080"
 

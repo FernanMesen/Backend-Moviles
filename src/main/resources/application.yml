@@ -21,3 +21,11 @@ spring:
 
 server:
   port: 8080
+
+app:
+  jwt:
+    # En la nube SIEMPRE se define la variable JWT_SECRET (mínimo 32 caracteres).
+    # El valor por defecto es solo para desarrollo local y pruebas.
+    secret: ${JWT_SECRET:dev-only-apunteia-jwt-secret-cambiar-en-produccion-0123456789}
+    expiration-minutes: ${JWT_EXPIRATION_MINUTES:120}
+    issuer: apunteia-backend

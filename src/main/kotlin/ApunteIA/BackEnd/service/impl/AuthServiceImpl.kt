@@ -15,9 +15,9 @@ import ApunteIA.BackEnd.mapper.UserMapper
 import ApunteIA.BackEnd.repository.PrivilegeRepository
 import ApunteIA.BackEnd.repository.RoleRepository
 import ApunteIA.BackEnd.repository.UserRepository
+import ApunteIA.BackEnd.security.JwtService
 import ApunteIA.BackEnd.service.AuthService
 import ApunteIA.BackEnd.service.SecurityLogService
-import ApunteIA.BackEnd.service.TokenGenerator
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -25,7 +25,7 @@ import java.time.LocalDateTime
 
 /**
  * Reglas: email sin importar mayúsculas · BCrypt · mismo mensaje para email inexistente y clave mala ·
- * Google sin contraseña → 401 · DELETED → 401 · BLOCKED → 403 · login actualiza last_login_at ·
+ * Google sin contraseña → 401 · DELETED → 401 · BLOCKED → 403 · login actualiza last_login_at y devuelve un JWT ·
  * registro rechaza duplicados (409) y crea STUDENT + BASIC.
  */
 @Service
@@ -34,7 +34,7 @@ class AuthServiceImpl(
     private val roleRepository: RoleRepository,
     private val privilegeRepository: PrivilegeRepository,
     private val passwordEncoder: PasswordEncoder,
-    private val tokenGenerator: TokenGenerator,
+    private val jwtService: JwtService,
     private val userMapper: UserMapper,
     private val securityLogService: SecurityLogService,
 ) : AuthService {
@@ -71,7 +71,7 @@ class AuthServiceImpl(
         }
 
         user.lastLoginAt = LocalDateTime.now() // la transacción hace el UPDATE al terminar
-        val response = userMapper.toLoginResponse(user, tokenGenerator.generate())
+        val response = userMapper.toLoginResponse(user, jwtService.generate(user), jwtService.expirationSeconds)
         securityLogService.record(SecurityLogService.LOGIN, user.id)
         return response
     }
