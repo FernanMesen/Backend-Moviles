@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.http.MediaType
 import org.springframework.test.context.TestPropertySource
 import org.springframework.test.web.servlet.MockMvc
@@ -25,6 +26,8 @@ import kotlin.test.assertTrue
 
 @SpringBootTest
 @AutoConfigureMockMvc
+// Estas pruebas validan la lógica de cada endpoint; la seguridad JWT se prueba en SecurityJwtTest
+@WithMockUser(roles = ["ADMIN"])
 @TestPropertySource(properties = ["spring.datasource.url=jdbc:h2:mem:apunteia-assessment-web;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE"])
 class AssessmentControllersTest @Autowired constructor(
     private val mockMvc: MockMvc,
@@ -308,6 +311,5 @@ class AssessmentControllersTest @Autowired constructor(
 
     @Test
     fun `DELETE attempt is not allowed`() {
-        mockMvc.delete("/attempts/1").andExpect { status { isMethodNotAllowed() } }
-    }
+        mockMvc.delete("/attempts/1").andExpect { status { isMethodNotAllowed() } }    }
 }

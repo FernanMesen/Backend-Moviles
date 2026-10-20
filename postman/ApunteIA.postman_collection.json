@@ -2,10 +2,822 @@
   "info": {
     "name": "ApunteIA Backend",
     "_postman_id": "a7d3c2f1-6b1e-4e2a-9a55-apunteia0006",
-    "description": "Colección del equipo para la API REST de ApunteIA (Lab 6).\n\nCada integrante agrega su carpeta: Auth y Usuarios (Fernán), Cursos/Inscripciones/Logs (Alice), Notas (Sharon), Evaluaciones (Dayron).\n\nVariable {{baseUrl}}: http://localhost:8080 (local o Docker). Correr en orden con el Collection Runner.",
+    "description": "Colección del equipo para la API REST de ApunteIA (Lab 6).\n\nCada integrante agrega su carpeta: Auth y Usuarios (Fernán), Cursos/Inscripciones/Logs (Alice), Notas (Sharon), Evaluaciones (Dayron).\n\nSeguridad: la colección usa Bearer {{token}} (lo guarda el login). Las rutas solo-ADMIN usan {{adminToken}}. Correr primero la carpeta 'Seguridad JWT (Fernán)'.\n\nVariable {{baseUrl}}: http://localhost:8080 (local o Docker). Correr en orden con el Collection Runner.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
+    {
+      "name": "Seguridad JWT (Fernán)",
+      "description": "Pruebas de Security with JWT. Correr primero: guarda {{adminToken}} y {{token}}, que usan las demás carpetas.\n\nCasos: login con JWT (200), sin token (401), sin prefijo Bearer (401), token mal formado (401), firma alterada (401), token vencido (401), cuenta bloqueada (401), estudiante en ruta de ADMIN (403) y admin (200).",
+      "item": [
+        {
+          "name": "Login admin y guardar adminToken (200)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Usuario admin del IdentitySeeder. Guarda {{adminToken}} para las rutas solo-ADMIN (PATCH /users/{id}/status y /security-logs)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code es 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Rol ADMIN\", () => pm.expect(body.role).to.eql(\"ADMIN\"));",
+                  "pm.collectionVariables.set(\"adminToken\", body.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login devuelve un JWT válido (200)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{demoEmail}}\",\n  \"password\": \"{{demoPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Usuario demo (STUDENT). Guarda {{token}}, que la colección manda como Bearer en todas las peticiones."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code es 200\", () => pm.response.to.have.status(200));",
+                  "const decode = (part) => JSON.parse(Buffer.from(part.replace(/-/g, \"+\").replace(/_/g, \"/\"), \"base64\").toString(\"utf8\"));",
+                  "const body = pm.response.json();",
+                  "const parts = body.token.split(\".\");",
+                  "pm.test(\"Es un JWT (header.payload.firma)\", () => pm.expect(parts).to.have.lengthOf(3));",
+                  "pm.test(\"tokenType Bearer y expiresIn\", () => { pm.expect(body.tokenType).to.eql(\"Bearer\"); pm.expect(body.expiresIn).to.be.above(0); });",
+                  "const header = decode(parts[0]); const payload = decode(parts[1]);",
+                  "pm.test(\"Firmado con HS256\", () => pm.expect(header.alg).to.eql(\"HS256\"));",
+                  "pm.test(\"Claims sub, email, role, iss\", () => { pm.expect(payload.sub).to.eql(String(body.userId)); pm.expect(payload.email).to.eql(body.email); pm.expect(payload.role).to.eql(\"STUDENT\"); pm.expect(payload.iss).to.eql(\"apunteia-backend\"); });",
+                  "pm.test(\"exp = iat + expiresIn\", () => pm.expect(payload.exp - payload.iat).to.eql(body.expiresIn));",
+                  "pm.test(\"No incluye la contraseña\", () => pm.expect(JSON.stringify(payload)).to.not.include(\"password\"));",
+                  "pm.collectionVariables.set(\"token\", body.token);",
+                  "pm.collectionVariables.set(\"jwtUserId\", body.userId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ruta protegida sin token (401)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/courses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "courses"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code es 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"Header WWW-Authenticate: Bearer\", () => pm.expect(pm.response.headers.get(\"WWW-Authenticate\")).to.eql(\"Bearer\"));",
+                  "const err = pm.response.json();",
+                  "pm.test(\"Formato ErrorResponse\", () => { pm.expect(err.status).to.eql(401); pm.expect(err.error).to.eql(\"Unauthorized\"); pm.expect(err.message).to.be.a(\"string\"); pm.expect(err.path).to.be.a(\"string\"); });",
+                  "pm.test(\"Mensaje: Falta el token\", () => pm.expect(err.message).to.include(\"Falta el token\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Header Authorization sin prefijo Bearer (401)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/courses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "courses"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code es 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"Header WWW-Authenticate: Bearer\", () => pm.expect(pm.response.headers.get(\"WWW-Authenticate\")).to.eql(\"Bearer\"));",
+                  "const err = pm.response.json();",
+                  "pm.test(\"Formato ErrorResponse\", () => { pm.expect(err.status).to.eql(401); pm.expect(err.error).to.eql(\"Unauthorized\"); pm.expect(err.message).to.be.a(\"string\"); pm.expect(err.path).to.be.a(\"string\"); });",
+                  "pm.test(\"Mensaje: Bearer <token>\", () => pm.expect(err.message).to.include(\"Bearer <token>\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Token mal formado (401)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/courses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "courses"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "abc.def",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code es 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"Header WWW-Authenticate: Bearer\", () => pm.expect(pm.response.headers.get(\"WWW-Authenticate\")).to.eql(\"Bearer\"));",
+                  "const err = pm.response.json();",
+                  "pm.test(\"Formato ErrorResponse\", () => { pm.expect(err.status).to.eql(401); pm.expect(err.error).to.eql(\"Unauthorized\"); pm.expect(err.message).to.be.a(\"string\"); pm.expect(err.path).to.be.a(\"string\"); });",
+                  "pm.test(\"Mensaje: El token no es válido\", () => pm.expect(err.message).to.include(\"El token no es válido\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Token con la firma alterada (401)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/courses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "courses"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwtTampered}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Cambia la firma del token real: el payload sigue igual, pero la firma ya no coincide",
+                  "const t = pm.collectionVariables.get(\"token\");",
+                  "pm.collectionVariables.set(\"jwtTampered\", t.slice(0, -4) + (t.endsWith(\"AAAA\") ? \"BBBB\" : \"AAAA\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code es 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"Header WWW-Authenticate: Bearer\", () => pm.expect(pm.response.headers.get(\"WWW-Authenticate\")).to.eql(\"Bearer\"));",
+                  "const err = pm.response.json();",
+                  "pm.test(\"Formato ErrorResponse\", () => { pm.expect(err.status).to.eql(401); pm.expect(err.error).to.eql(\"Unauthorized\"); pm.expect(err.message).to.be.a(\"string\"); pm.expect(err.path).to.be.a(\"string\"); });",
+                  "pm.test(\"Mensaje: El token no es válido\", () => pm.expect(err.message).to.include(\"El token no es válido\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Token vencido (401)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/courses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "courses"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwtExpired}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Arma un JWT HS256 con exp en el pasado, firmado con el secreto de desarrollo (jwtDevSecret).",
+                  "const CryptoJS = require(\"crypto-js\");",
+                  "const b64url = (wordArray) => CryptoJS.enc.Base64.stringify(wordArray).replace(/=+$/, \"\").replace(/\\+/g, \"-\").replace(/\\//g, \"_\");",
+                  "const now = Math.floor(Date.now() / 1000);",
+                  "const header = b64url(CryptoJS.enc.Utf8.parse(JSON.stringify({ alg: \"HS256\", typ: \"JWT\" })));",
+                  "const payload = b64url(CryptoJS.enc.Utf8.parse(JSON.stringify({ sub: String(pm.collectionVariables.get(\"jwtUserId\")), iss: \"apunteia-backend\", email: pm.collectionVariables.get(\"demoEmail\"), role: \"STUDENT\", iat: now - 7200, exp: now - 3600 })));",
+                  "const signature = b64url(CryptoJS.HmacSHA256(header + \".\" + payload, pm.collectionVariables.get(\"jwtDevSecret\")));",
+                  "pm.collectionVariables.set(\"jwtExpired\", header + \".\" + payload + \".\" + signature);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code es 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"Header WWW-Authenticate: Bearer\", () => pm.expect(pm.response.headers.get(\"WWW-Authenticate\")).to.eql(\"Bearer\"));",
+                  "const err = pm.response.json();",
+                  "pm.test(\"Formato ErrorResponse\", () => { pm.expect(err.status).to.eql(401); pm.expect(err.error).to.eql(\"Unauthorized\"); pm.expect(err.message).to.be.a(\"string\"); pm.expect(err.path).to.be.a(\"string\"); });",
+                  "pm.test(\"Mensaje de expiración (o firma distinta si se corre contra la nube)\", () => pm.expect(err.message).to.be.oneOf([\"El token expiró. Inicie sesión de nuevo\", \"El token no es válido\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estudiante con token válido accede (200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/courses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "courses"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code es 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Devuelve la lista de cursos\", () => pm.expect(pm.response.json()).to.be.an(\"array\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estudiante en ruta de ADMIN: auditoría (403)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/security-logs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "security-logs"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code es 403\", () => pm.response.to.have.status(403));",
+                  "const err = pm.response.json();",
+                  "pm.test(\"Formato ErrorResponse 403\", () => { pm.expect(err.status).to.eql(403); pm.expect(err.message).to.eql(\"No tiene permisos para realizar esta acción\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estudiante en ruta de ADMIN: cambiar estado (403)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{jwtUserId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{jwtUserId}}",
+                "status"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"BLOCKED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code es 403\", () => pm.response.to.have.status(403));",
+                  "const err = pm.response.json();",
+                  "pm.test(\"Formato ErrorResponse 403\", () => { pm.expect(err.status).to.eql(403); pm.expect(err.message).to.eql(\"No tiene permisos para realizar esta acción\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin en ruta de ADMIN: auditoría (200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/security-logs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "security-logs"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code es 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Devuelve los logs\", () => pm.expect(pm.response.json()).to.be.an(\"array\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar usuario temporal sin token (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Usuario JWT Temporal\",\n  \"email\": \"{{jwtTempEmail}}\",\n  \"password\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"jwtTempEmail\", `jwt.${Date.now()}@apunteia.com`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code es 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"jwtTempUserId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login del usuario temporal (200)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{jwtTempEmail}}\",\n  \"password\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code es 200\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set(\"jwtTempToken\", pm.response.json().token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Token del usuario temporal funciona (200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/courses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "courses"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwtTempToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code es 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin bloquea al usuario temporal (200)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{jwtTempUserId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{jwtTempUserId}}",
+                "status"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"BLOCKED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code es 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Queda BLOCKED\", () => pm.expect(pm.response.json().status).to.eql(\"BLOCKED\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Token de un usuario bloqueado deja de servir (401)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/courses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "courses"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwtTempToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code es 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"Header WWW-Authenticate: Bearer\", () => pm.expect(pm.response.headers.get(\"WWW-Authenticate\")).to.eql(\"Bearer\"));",
+                  "const err = pm.response.json();",
+                  "pm.test(\"Formato ErrorResponse\", () => { pm.expect(err.status).to.eql(401); pm.expect(err.error).to.eql(\"Unauthorized\"); pm.expect(err.message).to.be.a(\"string\"); pm.expect(err.path).to.be.a(\"string\"); });",
+                  "pm.test(\"Mensaje: La cuenta del token ya no está activa\", () => pm.expect(err.message).to.include(\"La cuenta del token ya no está activa\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
     {
       "name": "Auth y Usuarios (Fernán)",
       "item": [
@@ -929,6 +1741,16 @@
                       "language": "json"
                     }
                   }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
                 }
               },
               "event": [
@@ -1026,6 +1848,16 @@
                       "language": "json"
                     }
                   }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
                 }
               },
               "event": [
@@ -1074,6 +1906,16 @@
                       "language": "json"
                     }
                   }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
                 }
               },
               "event": [
@@ -1125,6 +1967,16 @@
                       "language": "json"
                     }
                   }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
                 }
               },
               "event": [
@@ -1175,6 +2027,16 @@
                       "language": "json"
                     }
                   }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
                 }
               },
               "event": [
@@ -1225,6 +2087,16 @@
                       "language": "json"
                     }
                   }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
                 }
               },
               "event": [
@@ -1273,6 +2145,16 @@
                       "language": "json"
                     }
                   }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
                 }
               },
               "event": [
@@ -1381,369 +2263,369 @@
       ]
     },
     {
-      "name":  "Notas (Sharon)",
-      "description":  "CRUD y filtros de notas, validación de solicitud, códigos HTTP y transiciones del estado de procesamiento. Ejecutar en orden de arriba hacia abajo.",
-      "item":  [
+      "name": "Notas (Sharon)",
+      "description": "CRUD y filtros de notas, validación de solicitud, códigos HTTP y transiciones del estado de procesamiento. Ejecutar en orden de arriba hacia abajo.",
+      "item": [
         {
-          "name":  "Preparar IDs desde notas de ejemplo (200)",
-          "request":  {
-            "method":  "GET",
-            "header":  [
+          "name": "Preparar IDs desde notas de ejemplo (200)",
+          "request": {
+            "method": "GET",
+            "header": [
               {
-                "key":  "Accept",
-                "value":  "application/json"
+                "key": "Accept",
+                "value": "application/json"
               }
             ],
-            "url":  "{{baseUrl}}/notes"
+            "url": "{{baseUrl}}/notes"
           },
-          "description":  "Toma userId y courseId de los datos semilla; ejecutar antes de las demás peticiones.",
-          "event":  [
+          "description": "Toma userId y courseId de los datos semilla; ejecutar antes de las demás peticiones.",
+          "event": [
             {
-              "script":  {
-                "exec":  [
-                  "pm.test(\"Status code es 200\", () =\u003e pm.response.to.have.status(200));",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 200\", () => pm.response.to.have.status(200));",
                   "const notes = pm.response.json();",
-                  "const sample = notes.find(note =\u003e note.courseCode === \"EIF411\");",
-                  "pm.test(\"Existe la nota sembrada del curso EIF411\", () =\u003e pm.expect(sample).to.exist);",
+                  "const sample = notes.find(note => note.courseCode === \"EIF411\");",
+                  "pm.test(\"Existe la nota sembrada del curso EIF411\", () => pm.expect(sample).to.exist);",
                   "pm.collectionVariables.set(\"noteUserId\", sample.userId);",
                   "pm.collectionVariables.set(\"noteCourseId\", sample.courseId);"
                 ],
-                "type":  "text/javascript"
+                "type": "text/javascript"
               },
-              "listen":  "test"
+              "listen": "test"
             }
           ]
         },
         {
-          "name":  "Crear nota con título vacío (400)",
-          "request":  {
-            "method":  "POST",
-            "header":  [
+          "name": "Crear nota con título vacío (400)",
+          "request": {
+            "method": "POST",
+            "header": [
               {
-                "key":  "Accept",
-                "value":  "application/json"
+                "key": "Accept",
+                "value": "application/json"
               },
               {
-                "key":  "Content-Type",
-                "value":  "application/json"
+                "key": "Content-Type",
+                "value": "application/json"
               }
             ],
-            "url":  "{{baseUrl}}/notes",
-            "body":  {
-              "raw":  "{\n  \"title\": \"\",\n  \"content\": \"Contenido de prueba\",\n  \"userId\": {{noteUserId}},\n  \"courseId\": {{noteCourseId}}\n}",
-              "options":  {
-                "raw":  {
-                  "language":  "json"
+            "url": "{{baseUrl}}/notes",
+            "body": {
+              "raw": "{\n  \"title\": \"\",\n  \"content\": \"Contenido de prueba\",\n  \"userId\": {{noteUserId}},\n  \"courseId\": {{noteCourseId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
               },
-              "mode":  "raw"
+              "mode": "raw"
             }
           },
-          "event":  [
+          "event": [
             {
-              "script":  {
-                "exec":  [
-                  "pm.test(\"Status code es 400\", () =\u003e pm.response.to.have.status(400));",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 400\", () => pm.response.to.have.status(400));",
                   "const error = pm.response.json();",
-                  "pm.test(\"Error de validación con formato común\", () =\u003e { pm.expect(error.status).to.eql(400); pm.expect(error).to.have.property(\"fieldErrors\"); });"
+                  "pm.test(\"Error de validación con formato común\", () => { pm.expect(error.status).to.eql(400); pm.expect(error).to.have.property(\"fieldErrors\"); });"
                 ],
-                "type":  "text/javascript"
+                "type": "text/javascript"
               },
-              "listen":  "test"
+              "listen": "test"
             }
           ]
         },
         {
-          "name":  "Crear nota (201)",
-          "request":  {
-            "method":  "POST",
-            "header":  [
+          "name": "Crear nota (201)",
+          "request": {
+            "method": "POST",
+            "header": [
               {
-                "key":  "Accept",
-                "value":  "application/json"
+                "key": "Accept",
+                "value": "application/json"
               },
               {
-                "key":  "Content-Type",
-                "value":  "application/json"
+                "key": "Content-Type",
+                "value": "application/json"
               }
             ],
-            "url":  "{{baseUrl}}/notes",
-            "body":  {
-              "raw":  "{\n  \"title\": \"Nota Postman\",\n  \"content\": \"Contenido creado desde la colección de Postman.\",\n  \"userId\": {{noteUserId}},\n  \"courseId\": {{noteCourseId}}\n}",
-              "options":  {
-                "raw":  {
-                  "language":  "json"
+            "url": "{{baseUrl}}/notes",
+            "body": {
+              "raw": "{\n  \"title\": \"Nota Postman\",\n  \"content\": \"Contenido creado desde la colección de Postman.\",\n  \"userId\": {{noteUserId}},\n  \"courseId\": {{noteCourseId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
               },
-              "mode":  "raw"
+              "mode": "raw"
             }
           },
-          "event":  [
+          "event": [
             {
-              "script":  {
-                "exec":  [
-                  "pm.test(\"Status code es 201\", () =\u003e pm.response.to.have.status(201));",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 201\", () => pm.response.to.have.status(201));",
                   "const note = pm.response.json();",
-                  "pm.test(\"La nota inicia en PENDING\", () =\u003e pm.expect(note.processingStatus).to.eql(\"PENDING\"));",
-                  "pm.test(\"Responde con Location\", () =\u003e pm.expect(pm.response.headers.get(\"Location\")).to.include(\"/notes/\" + note.id));",
+                  "pm.test(\"La nota inicia en PENDING\", () => pm.expect(note.processingStatus).to.eql(\"PENDING\"));",
+                  "pm.test(\"Responde con Location\", () => pm.expect(pm.response.headers.get(\"Location\")).to.include(\"/notes/\" + note.id));",
                   "pm.collectionVariables.set(\"noteId\", note.id);"
                 ],
-                "type":  "text/javascript"
+                "type": "text/javascript"
               },
-              "listen":  "test"
+              "listen": "test"
             }
           ]
         },
         {
-          "name":  "Listar notas con filtros (200)",
-          "request":  {
-            "method":  "GET",
-            "header":  [
+          "name": "Listar notas con filtros (200)",
+          "request": {
+            "method": "GET",
+            "header": [
               {
-                "key":  "Accept",
-                "value":  "application/json"
+                "key": "Accept",
+                "value": "application/json"
               }
             ],
-            "url":  "{{baseUrl}}/notes?userId={{noteUserId}}\u0026courseId={{noteCourseId}}\u0026status=PENDING"
+            "url": "{{baseUrl}}/notes?userId={{noteUserId}}&courseId={{noteCourseId}}&status=PENDING"
           },
-          "event":  [
+          "event": [
             {
-              "script":  {
-                "exec":  [
-                  "pm.test(\"Status code es 200\", () =\u003e pm.response.to.have.status(200));",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 200\", () => pm.response.to.have.status(200));",
                   "const notes = pm.response.json();",
-                  "pm.test(\"Incluye la nota creada\", () =\u003e pm.expect(notes.some(note =\u003e String(note.id) === String(pm.collectionVariables.get(\"noteId\")))).to.eql(true));"
+                  "pm.test(\"Incluye la nota creada\", () => pm.expect(notes.some(note => String(note.id) === String(pm.collectionVariables.get(\"noteId\")))).to.eql(true));"
                 ],
-                "type":  "text/javascript"
+                "type": "text/javascript"
               },
-              "listen":  "test"
+              "listen": "test"
             }
           ]
         },
         {
-          "name":  "Consultar nota creada (200)",
-          "request":  {
-            "method":  "GET",
-            "header":  [
+          "name": "Consultar nota creada (200)",
+          "request": {
+            "method": "GET",
+            "header": [
               {
-                "key":  "Accept",
-                "value":  "application/json"
+                "key": "Accept",
+                "value": "application/json"
               }
             ],
-            "url":  "{{baseUrl}}/notes/{{noteId}}"
+            "url": "{{baseUrl}}/notes/{{noteId}}"
           },
-          "event":  [
+          "event": [
             {
-              "script":  {
-                "exec":  [
-                  "pm.test(\"Status code es 200\", () =\u003e pm.response.to.have.status(200));",
-                  "pm.test(\"Devuelve el id solicitado\", () =\u003e pm.expect(String(pm.response.json().id)).to.eql(String(pm.collectionVariables.get(\"noteId\"))));"
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Devuelve el id solicitado\", () => pm.expect(String(pm.response.json().id)).to.eql(String(pm.collectionVariables.get(\"noteId\"))));"
                 ],
-                "type":  "text/javascript"
+                "type": "text/javascript"
               },
-              "listen":  "test"
+              "listen": "test"
             }
           ]
         },
         {
-          "name":  "Actualizar nota (200)",
-          "request":  {
-            "method":  "PUT",
-            "header":  [
+          "name": "Actualizar nota (200)",
+          "request": {
+            "method": "PUT",
+            "header": [
               {
-                "key":  "Accept",
-                "value":  "application/json"
+                "key": "Accept",
+                "value": "application/json"
               },
               {
-                "key":  "Content-Type",
-                "value":  "application/json"
+                "key": "Content-Type",
+                "value": "application/json"
               }
             ],
-            "url":  "{{baseUrl}}/notes/{{noteId}}",
-            "body":  {
-              "raw":  "{\n  \"title\": \"Nota Postman actualizada\",\n  \"content\": \"Contenido actualizado desde la colección.\",\n  \"userId\": {{noteUserId}},\n  \"courseId\": {{noteCourseId}}\n}",
-              "options":  {
-                "raw":  {
-                  "language":  "json"
+            "url": "{{baseUrl}}/notes/{{noteId}}",
+            "body": {
+              "raw": "{\n  \"title\": \"Nota Postman actualizada\",\n  \"content\": \"Contenido actualizado desde la colección.\",\n  \"userId\": {{noteUserId}},\n  \"courseId\": {{noteCourseId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
               },
-              "mode":  "raw"
+              "mode": "raw"
             }
           },
-          "event":  [
+          "event": [
             {
-              "script":  {
-                "exec":  [
-                  "pm.test(\"Status code es 200\", () =\u003e pm.response.to.have.status(200));",
-                  "pm.test(\"Devuelve el contenido actualizado\", () =\u003e pm.expect(pm.response.json().title).to.eql(\"Nota Postman actualizada\"));"
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Devuelve el contenido actualizado\", () => pm.expect(pm.response.json().title).to.eql(\"Nota Postman actualizada\"));"
                 ],
-                "type":  "text/javascript"
+                "type": "text/javascript"
               },
-              "listen":  "test"
+              "listen": "test"
             }
           ]
         },
         {
-          "name":  "Cambiar estado PENDING a PROCESSING (200)",
-          "request":  {
-            "method":  "PATCH",
-            "header":  [
+          "name": "Cambiar estado PENDING a PROCESSING (200)",
+          "request": {
+            "method": "PATCH",
+            "header": [
               {
-                "key":  "Accept",
-                "value":  "application/json"
+                "key": "Accept",
+                "value": "application/json"
               },
               {
-                "key":  "Content-Type",
-                "value":  "application/json"
+                "key": "Content-Type",
+                "value": "application/json"
               }
             ],
-            "url":  "{{baseUrl}}/notes/{{noteId}}/status",
-            "body":  {
-              "raw":  "{ \"status\": \"PROCESSING\" }",
-              "options":  {
-                "raw":  {
-                  "language":  "json"
+            "url": "{{baseUrl}}/notes/{{noteId}}/status",
+            "body": {
+              "raw": "{ \"status\": \"PROCESSING\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
               },
-              "mode":  "raw"
+              "mode": "raw"
             }
           },
-          "event":  [
+          "event": [
             {
-              "script":  {
-                "exec":  [
-                  "pm.test(\"Status code es 200\", () =\u003e pm.response.to.have.status(200));",
-                  "pm.test(\"El nuevo estado es PROCESSING\", () =\u003e pm.expect(pm.response.json().processingStatus).to.eql(\"PROCESSING\"));"
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"El nuevo estado es PROCESSING\", () => pm.expect(pm.response.json().processingStatus).to.eql(\"PROCESSING\"));"
                 ],
-                "type":  "text/javascript"
+                "type": "text/javascript"
               },
-              "listen":  "test"
+              "listen": "test"
             }
           ]
         },
         {
-          "name":  "Completar procesamiento (200)",
-          "request":  {
-            "method":  "PATCH",
-            "header":  [
+          "name": "Completar procesamiento (200)",
+          "request": {
+            "method": "PATCH",
+            "header": [
               {
-                "key":  "Accept",
-                "value":  "application/json"
+                "key": "Accept",
+                "value": "application/json"
               },
               {
-                "key":  "Content-Type",
-                "value":  "application/json"
+                "key": "Content-Type",
+                "value": "application/json"
               }
             ],
-            "url":  "{{baseUrl}}/notes/{{noteId}}/status",
-            "body":  {
-              "raw":  "{ \"status\": \"COMPLETED\" }",
-              "options":  {
-                "raw":  {
-                  "language":  "json"
+            "url": "{{baseUrl}}/notes/{{noteId}}/status",
+            "body": {
+              "raw": "{ \"status\": \"COMPLETED\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
               },
-              "mode":  "raw"
+              "mode": "raw"
             }
           },
-          "event":  [
+          "event": [
             {
-              "script":  {
-                "exec":  [
-                  "pm.test(\"Status code es 200\", () =\u003e pm.response.to.have.status(200));",
-                  "pm.test(\"El nuevo estado es COMPLETED\", () =\u003e pm.expect(pm.response.json().processingStatus).to.eql(\"COMPLETED\"));"
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"El nuevo estado es COMPLETED\", () => pm.expect(pm.response.json().processingStatus).to.eql(\"COMPLETED\"));"
                 ],
-                "type":  "text/javascript"
+                "type": "text/javascript"
               },
-              "listen":  "test"
+              "listen": "test"
             }
           ]
         },
         {
-          "name":  "Rechazar transición desde COMPLETED (409)",
-          "request":  {
-            "method":  "PATCH",
-            "header":  [
+          "name": "Rechazar transición desde COMPLETED (409)",
+          "request": {
+            "method": "PATCH",
+            "header": [
               {
-                "key":  "Accept",
-                "value":  "application/json"
+                "key": "Accept",
+                "value": "application/json"
               },
               {
-                "key":  "Content-Type",
-                "value":  "application/json"
+                "key": "Content-Type",
+                "value": "application/json"
               }
             ],
-            "url":  "{{baseUrl}}/notes/{{noteId}}/status",
-            "body":  {
-              "raw":  "{ \"status\": \"PROCESSING\" }",
-              "options":  {
-                "raw":  {
-                  "language":  "json"
+            "url": "{{baseUrl}}/notes/{{noteId}}/status",
+            "body": {
+              "raw": "{ \"status\": \"PROCESSING\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
               },
-              "mode":  "raw"
+              "mode": "raw"
             }
           },
-          "event":  [
+          "event": [
             {
-              "script":  {
-                "exec":  [
-                  "pm.test(\"Status code es 409\", () =\u003e pm.response.to.have.status(409));",
-                  "pm.test(\"Error de conflicto con formato común\", () =\u003e { const error = pm.response.json(); pm.expect(error.status).to.eql(409); pm.expect(error).to.have.property(\"message\"); });"
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Error de conflicto con formato común\", () => { const error = pm.response.json(); pm.expect(error.status).to.eql(409); pm.expect(error).to.have.property(\"message\"); });"
                 ],
-                "type":  "text/javascript"
+                "type": "text/javascript"
               },
-              "listen":  "test"
-            }
-          ]
-        },
-        {
-          "name":  "Eliminar nota (204)",
-          "request":  {
-            "method":  "DELETE",
-            "header":  [
-              {
-                "key":  "Accept",
-                "value":  "application/json"
-              }
-            ],
-            "url":  "{{baseUrl}}/notes/{{noteId}}"
-          },
-          "event":  [
-            {
-              "script":  {
-                "exec":  [
-                  "pm.test(\"Status code es 204\", () =\u003e pm.response.to.have.status(204));",
-                  "pm.test(\"No devuelve contenido\", () =\u003e pm.expect(pm.response.text()).to.eql(\"\"));"
-                ],
-                "type":  "text/javascript"
-              },
-              "listen":  "test"
+              "listen": "test"
             }
           ]
         },
         {
-          "name":  "Consultar nota eliminada (404)",
-          "request":  {
-            "method":  "GET",
-            "header":  [
+          "name": "Eliminar nota (204)",
+          "request": {
+            "method": "DELETE",
+            "header": [
               {
-                "key":  "Accept",
-                "value":  "application/json"
+                "key": "Accept",
+                "value": "application/json"
               }
             ],
-            "url":  "{{baseUrl}}/notes/{{noteId}}"
+            "url": "{{baseUrl}}/notes/{{noteId}}"
           },
-          "event":  [
+          "event": [
             {
-              "script":  {
-                "exec":  [
-                  "pm.test(\"Status code es 404\", () =\u003e pm.response.to.have.status(404));",
-                  "pm.test(\"Error de recurso inexistente\", () =\u003e { const error = pm.response.json(); pm.expect(error.status).to.eql(404); pm.expect(error).to.have.property(\"message\"); });"
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 204\", () => pm.response.to.have.status(204));",
+                  "pm.test(\"No devuelve contenido\", () => pm.expect(pm.response.text()).to.eql(\"\"));"
                 ],
-                "type":  "text/javascript"
+                "type": "text/javascript"
               },
-              "listen":  "test"
+              "listen": "test"
+            }
+          ]
+        },
+        {
+          "name": "Consultar nota eliminada (404)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/notes/{{noteId}}"
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Error de recurso inexistente\", () => { const error = pm.response.json(); pm.expect(error.status).to.eql(404); pm.expect(error).to.have.property(\"message\"); });"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
             }
           ]
         }
@@ -2485,7 +3367,17 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{baseUrl}}/security-logs"
+            "url": "{{baseUrl}}/security-logs",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
           },
           "event": [
             {
@@ -2513,7 +3405,17 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{baseUrl}}/security-logs?eventType=LOGIN"
+            "url": "{{baseUrl}}/security-logs?eventType=LOGIN",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
           },
           "event": [
             {
@@ -2542,7 +3444,17 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{baseUrl}}/security-logs?userId={{demoUserId}}"
+            "url": "{{baseUrl}}/security-logs?userId={{demoUserId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
           },
           "event": [
             {
@@ -2571,7 +3483,17 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{baseUrl}}/security-logs?anonymousOnly=true"
+            "url": "{{baseUrl}}/security-logs?anonymousOnly=true",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
           },
           "event": [
             {
@@ -2600,7 +3522,17 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{baseUrl}}/security-logs/999999999"
+            "url": "{{baseUrl}}/security-logs/999999999",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
           },
           "event": [
             {
@@ -2640,6 +3572,16 @@
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
             }
           },
           "event": [
@@ -2696,8 +3638,7 @@
               }
             }
           ]
-        }
-      ,
+        },
         {
           "name": "30 - Referencia de logs reales del usuario demo - 200",
           "request": {
@@ -2708,7 +3649,17 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{baseUrl}}/security-logs?userId={{demoUserId}}"
+            "url": "{{baseUrl}}/security-logs?userId={{demoUserId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
           },
           "event": [
             {
@@ -2785,7 +3736,17 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{baseUrl}}/security-logs?eventType=LOGIN_FAILED"
+            "url": "{{baseUrl}}/security-logs?eventType=LOGIN_FAILED",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
           },
           "event": [
             {
@@ -2854,7 +3815,17 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{baseUrl}}/security-logs?userId={{demoUserId}}&eventType=LOGIN"
+            "url": "{{baseUrl}}/security-logs?userId={{demoUserId}}&eventType=LOGIN",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
           },
           "event": [
             {
@@ -4303,6 +5274,66 @@
     {
       "key": "newUserId",
       "value": ""
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@apunteia.com",
+      "type": "string"
+    },
+    {
+      "key": "adminPassword",
+      "value": "Admin123!",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "jwtUserId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "jwtTampered",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "jwtExpired",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "jwtDevSecret",
+      "value": "dev-only-apunteia-jwt-secret-cambiar-en-produccion-0123456789",
+      "type": "string"
+    },
+    {
+      "key": "jwtTempEmail",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "jwtTempToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "jwtTempUserId",
+      "value": "",
+      "type": "string"
     }
-  ]
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  }
 }

@@ -20,7 +20,8 @@ Le da datos a la app Android: usuarios, cursos, apuntes y evaluaciones. Más ade
 | Spring Web | (BOM de Boot) | Controladores REST, Tomcat embebido |
 | Spring Data JPA + Hibernate | (BOM de Boot) | Persistencia |
 | Bean Validation | (BOM de Boot) | Validación de DTOs (`@NotBlank`, `@Email`, ...) |
-| Spring Security Crypto | (BOM de Boot) | Solo BCrypt para las contraseñas |
+| Spring Security | (BOM de Boot) | Autenticación con JWT, roles y BCrypt |
+| JJWT | 0.12.6 | Generar y validar los JWT (HS256) |
 | H2 | (BOM de Boot) | Base local en archivo, sin instalar nada |
 | PostgreSQL | 16 | Base en Docker y en la nube |
 | Gradle (wrapper) | 8.14 | Build |
@@ -88,7 +89,7 @@ postman/
 
 | Método | Ruta | Body | Respuestas |
 |---|---|---|---|
-| `POST` | `/auth/login` | `{ "email", "password" }` | `200` `{ token, userName, userId, email, role }` · `400` · `401` · `403` |
+| `POST` | `/auth/login` | `{ "email", "password" }` | `200` `{ token, tokenType, expiresIn, userName, userId, email, role }` · `400` · `401` · `403` |
 | `POST` | `/auth/register` | `{ "fullName", "email", "password" }` | `201` `UserResponse` + header `Location` · `400` · `409` |
 | `GET` | `/users` | — (opcional `?status=ACTIVE\|BLOCKED\|DELETED`) | `200` `[UserResponse]` · `400` |
 | `GET` | `/users/{id}` | — | `200` `UserResponse` · `400` · `404` |
@@ -103,7 +104,26 @@ postman/
 - Login exitoso: actualiza `last_login_at`.
 - Registro: email duplicado → `409`; siempre se crea con rol `STUDENT`, privilegio `BASIC`, estado `ACTIVE`.
 - Estado: `DELETED` es un **borrado lógico** y es final (no se puede reactivar → `409`). Pedir el mismo estado que ya tiene devuelve `200` sin cambios.
-- El `token` por ahora es opaco (`apunteia-<uuid>`); en el módulo *Security with JWT* se reemplaza `TokenGenerator` por un JWT.
+- El `token` del login es un **JWT** (ver la sección de seguridad).
+
+## 🔐 Seguridad con JWT
+
+Toda la API pide `Authorization: Bearer <token>`, menos estas rutas:
+
+| Acceso | Rutas |
+|---|---|
+| Pública | `POST /auth/login`, `POST /auth/register`, `/h2-console` (solo en desarrollo) |
+| Solo `ADMIN` | `PATCH /users/{id}/status`, `GET /security-logs/**` |
+| Cualquier usuario con sesión | todo lo demás |
+
+- **Token:** JWT firmado con HS256. Lleva `sub` (id del usuario), `email`, `role`, `iss` (`apunteia-backend`), `iat` y `exp`. Dura `JWT_EXPIRATION_MINUTES` (120 por defecto).
+- **Secreto:** se toma de la variable `JWT_SECRET` (mínimo 32 caracteres). El valor por defecto de `application.yml` es solo para desarrollo; en la nube hay que definir uno propio (`openssl rand -base64 48`).
+- **Errores**, con el mismo `ErrorResponse` del resto de la API:
+    - `401`: falta el token, no tiene el prefijo `Bearer`, está mal formado, la firma fue alterada, ya venció, o la cuenta ya no está `ACTIVE` (un usuario bloqueado pierde el acceso de inmediato, aunque su token no haya vencido).
+    - `403`: el token es válido, pero el rol no tiene permiso para esa ruta.
+- **En un controlador**, el usuario del token se recibe con `@AuthenticationPrincipal user: AuthenticatedUser` (`user.id`, `user.email`, `user.role`).
+- **Clases:** `SecurityConfig` (reglas), `JwtService` (genera y valida), `JwtAuthenticationFilter` (lee el header), `RestAuthenticationEntryPoint` y `RestAccessDeniedHandler` (respuestas 401 y 403).
+- **Postman:** la colección manda `Bearer {{token}}` en todas las peticiones; las rutas solo-ADMIN usan `{{adminToken}}`. La carpeta **Seguridad JWT (Fernán)** va de primera porque guarda los dos tokens.
 
 ## Cursos, Inscripciones y Auditoría
 
@@ -390,10 +410,9 @@ Cada integrante agrega su carpeta a la misma colección (Cursos, Notas, Evaluaci
 
 ## 📱 Conectar el FrontEnd
 
-`LoginResponse` respeta el contrato que ya usa la app (`{ token, userName }`), así que basta con cambiar la URL base de Retrofit:
+`LoginResponse` respeta el contrato que ya usa la app (`{ token, userName }`). Hay que cambiar la URL base de Retrofit y mandar el token en cada petición con un interceptor (`Authorization: Bearer <token>`):
 
 - Emulador de Android: `http://10.0.2.2:8080/`
 - Celular físico en la misma red: `http://<IP-de-la-compu>:8080/`
 
 ---
-
