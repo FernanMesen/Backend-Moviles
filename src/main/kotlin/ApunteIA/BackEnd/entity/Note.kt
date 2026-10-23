@@ -25,6 +25,9 @@ class Note(
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     var content: String,
 
+    @Column(name = "summary", columnDefinition = "TEXT")
+    var summary: String? = null,
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     var user: User,

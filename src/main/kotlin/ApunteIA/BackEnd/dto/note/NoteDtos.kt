@@ -49,6 +49,7 @@ data class NoteResponse(
     val id: Long,
     val title: String,
     val content: String,
+    val summary: String?,
     val userId: Long,
     val courseId: Long,
     val courseCode: String,

@@ -14,6 +14,7 @@ class NoteMapper {
         id = requireNotNull(note.id) { "La nota no ha sido guardada" },
         title = note.title,
         content = note.content,
+        summary = note.summary,
         userId = requireNotNull(note.user.id) { "El usuario de la nota no tiene id" },
         courseId = requireNotNull(note.course.id) { "El curso de la nota no tiene id" },
         courseCode = note.course.code,
