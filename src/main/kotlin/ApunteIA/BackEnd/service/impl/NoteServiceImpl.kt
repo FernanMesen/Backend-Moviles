@@ -1,11 +1,13 @@
 package ApunteIA.BackEnd.service.impl
 
+import ApunteIA.BackEnd.ai.AiClient
 import ApunteIA.BackEnd.dto.note.NoteResponse
 import ApunteIA.BackEnd.dto.note.CreateNoteRequest
 import ApunteIA.BackEnd.dto.note.UpdateNoteRequest
 import ApunteIA.BackEnd.entity.Note
 import ApunteIA.BackEnd.entity.ProcessingStatus
 import ApunteIA.BackEnd.exception.ConflictException
+import ApunteIA.BackEnd.exception.AiProviderException
 import ApunteIA.BackEnd.exception.NotFoundException
 import ApunteIA.BackEnd.mapper.NoteMapper
 import ApunteIA.BackEnd.repository.CourseRepository
@@ -14,6 +16,7 @@ import ApunteIA.BackEnd.repository.UserRepository
 import ApunteIA.BackEnd.service.NoteService
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 
 @Service
@@ -23,6 +26,8 @@ class NoteServiceImpl(
     private val userRepository: UserRepository,
     private val courseRepository: CourseRepository,
     private val noteMapper: NoteMapper,
+    private val aiClient: AiClient,
+    private val noteProcessingStateService: NoteProcessingStateService,
 ) : NoteService {
 
     override fun findAll(userId: Long?, courseId: Long?, status: ProcessingStatus?): List<NoteResponse> {
@@ -55,6 +60,18 @@ class NoteServiceImpl(
         note.user = user
         note.course = course
         return noteMapper.toResponse(noteRepository.saveAndFlush(note))
+    }
+
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    override fun processWithAi(id: Long): NoteResponse {
+        val content = noteProcessingStateService.begin(id)
+        return try {
+            val summary = aiClient.summarize(content)
+            noteProcessingStateService.complete(id, summary)
+        } catch (ex: AiProviderException) {
+            noteProcessingStateService.fail(id)
+            throw ex
+        }
     }
 
     @Transactional
