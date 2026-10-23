@@ -30,3 +30,11 @@ class NotFoundException(message: String) : ApiException(HttpStatus.NOT_FOUND, me
 
 /** 409 — choca con el estado actual de los datos (email duplicado, transición de estado inválida...). */
 class ConflictException(message: String) : ApiException(HttpStatus.CONFLICT, message)
+
+/** 502 — el proveedor externo de IA no respondió correctamente. */
+class AiProviderException(message: String, cause: Throwable? = null) :
+    ApiException(HttpStatus.BAD_GATEWAY, message) {
+    init {
+        if (cause != null) initCause(cause)
+    }
+}

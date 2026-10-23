@@ -23,6 +23,11 @@ server:
   port: 8080
 
 app:
+  ai:
+    # La clave se configura localmente o en el entorno de despliegue; nunca se guarda en Git.
+    api-key: ${OPENAI_API_KEY:}
+    model: ${OPENAI_MODEL:gpt-4o-mini}
+    timeout-seconds: ${AI_TIMEOUT_SECONDS:30}
   jwt:
     # En la nube SIEMPRE se define la variable JWT_SECRET (mínimo 32 caracteres).
     # El valor por defecto es solo para desarrollo local y pruebas.
