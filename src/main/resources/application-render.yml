@@ -1,0 +1,18 @@
+# Activar en Render con SPRING_PROFILES_ACTIVE=render.
+# JPA hereda la configuración común de application.yml (ddl-auto: update).
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+  h2:
+    console:
+      enabled: false
+
+server:
+  port: ${PORT:8080}
+
+app:
+  jwt:
+    # Obligatorio en cloud: no utilizar la clave de desarrollo como respaldo.
+    secret: ${JWT_SECRET}
