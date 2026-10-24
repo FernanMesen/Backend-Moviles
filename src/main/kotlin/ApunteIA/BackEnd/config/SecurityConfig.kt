@@ -19,7 +19,8 @@ import org.springframework.security.web.servlet.util.matcher.PathPatternRequestM
  * Seguridad de la API con JWT (módulo "Security with JWT").
  *
  *  Públicas:      POST /auth/login, POST /auth/register, /h2-console (solo desarrollo), /error
- *  Solo ADMIN:    PATCH /users/{id}/status, GET /security-logs y GET /security-logs/{id} *  Resto:         requiere `Authorization: Bearer <token>` de cualquier usuario ACTIVE
+ *  Solo ADMIN:    PATCH /users/{id}/status, GET /security-logs y GET /security-logs/{id}
+ *  Resto:         requiere `Authorization: Bearer <token>` de cualquier usuario ACTIVE
  *
  * Es stateless: no hay sesión ni cookies, así que CSRF no aplica y se desactiva.
  * El PasswordEncoder (BCrypt) sigue en PasswordConfig.
