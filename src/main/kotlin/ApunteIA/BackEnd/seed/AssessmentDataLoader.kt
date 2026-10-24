@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component
 
 /** Se ejecuta de último, después de identidad, académico/auditoría y notas. */
 @Component
-@Profile("!prod & !render")
+@Profile("!prod")
 @Order(4)
 class AssessmentDataLoader(private val assessmentSeeder: AssessmentSeeder) : CommandLineRunner {
     override fun run(vararg args: String) {

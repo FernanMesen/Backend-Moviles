@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component
 
 /** Se ejecuta después de identidad y académico/auditoría, antes de evaluaciones. */
 @Component
-@Profile("!prod & !render")
+@Profile("!prod")
 @Order(3)
 class NoteDataLoader(private val noteSeeder: NoteSeeder) : CommandLineRunner {
     override fun run(vararg args: String) {

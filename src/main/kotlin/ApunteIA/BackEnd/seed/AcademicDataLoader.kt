@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component
 
 /** Se ejecuta después de la carga de identidad (@Order(1)). */
 @Component
-@Profile("!prod & !render")
+@Profile("!prod")
 @Order(2)
 class AcademicDataLoader(private val academicSeeder: AcademicSeeder) : CommandLineRunner {
     override fun run(vararg args: String) {
