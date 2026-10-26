@@ -6,7 +6,7 @@ import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
 
 /**
- * Carga los datos de prueba al arrancar la app (excepto en el perfil "prod").
+ * Carga los datos de prueba en local y en Render (demo académico), excepto en "prod".
  * Cada persona agrega su propio runner con un @Order mayor:
  *   1 Identidad (A) → 2 Académico/Auditoría (B) → 3 Notas (C) → 4 Evaluaciones (D)
  */
