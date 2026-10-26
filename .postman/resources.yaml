@@ -2,9 +2,11 @@
 workspace:
   id: 5796b521-86a6-4cf7-861b-f56b504aa99c
 
+# Each entry here maps a local resource to one or more corresponding objects in Postman Cloud
+
 cloudResources:
   collections:
-    ../postman/collections/ApunteIA Backend: d3ed947b-eda5-44ab-a78b-c0f2ec33b70e
+    ../postman/collections/ApunteIA Backend: 1639c372-308a-42d2-92ec-6e062492af76
 
 # All resources in the `postman/` folder are automatically registered in Local View.
 # Point to additional files outside the `postman/` folder to register them individually. Example:

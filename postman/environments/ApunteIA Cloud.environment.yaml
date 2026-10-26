@@ -1,0 +1,4 @@
+name: ApunteIA Cloud
+values:
+  - key: baseUrl
+    value: ''

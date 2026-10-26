@@ -9,4 +9,4 @@ scripts:
       pm.test("Status code es 204", () => pm.response.to.have.status(204));
       pm.test("No devuelve contenido", () => pm.expect(pm.response.text()).to.eql(""));
     language: text/javascript
-order: 10000
+order: 11000

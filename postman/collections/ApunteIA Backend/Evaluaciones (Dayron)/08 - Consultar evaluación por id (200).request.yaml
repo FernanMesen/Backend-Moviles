@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/assessments/{{evalAssessmentId}}"
+method: GET
+headers:
+  Accept: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 200", () => pm.response.to.have.status(200));
+      pm.test("Devuelve la evaluación pedida", () => pm.expect(pm.response.json().id).to.eql(Number(pm.collectionVariables.get("evalAssessmentId"))));
+      pm.test("Tiene 2 preguntas con 3 y 2 opciones", () => { const q = pm.response.json().questions; pm.expect(q.map(x => x.options.length)).to.eql([3, 2]); });
+    language: text/javascript
+order: 8000

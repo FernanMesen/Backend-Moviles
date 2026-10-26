@@ -1,0 +1,6 @@
+$kind: collection
+description: |-
+  Pruebas de Security with JWT. Correr primero: guarda {{adminToken}} y {{token}}, que usan las demás carpetas.
+
+  Casos: login con JWT (200), sin token (401), sin prefijo Bearer (401), token mal formado (401), firma alterada (401), token vencido (401), cuenta bloqueada (401), estudiante en ruta de ADMIN (403) y admin (200).
+order: 1000

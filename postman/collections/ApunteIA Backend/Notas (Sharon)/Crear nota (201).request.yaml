@@ -22,4 +22,4 @@ scripts:
       pm.test("Responde con Location", () => pm.expect(pm.response.headers.get("Location")).to.include("/notes/" + note.id));
       pm.collectionVariables.set("noteId", note.id);
     language: text/javascript
-order: 3000
+order: 4000

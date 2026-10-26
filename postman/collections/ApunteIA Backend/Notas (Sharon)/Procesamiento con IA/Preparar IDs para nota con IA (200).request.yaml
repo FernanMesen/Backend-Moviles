@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/notes"
+method: GET
+headers:
+  Accept: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code es 200', () => pm.response.to.have.status(200));
+      const sample = pm.response.json().find(note => note.courseCode === 'EIF411');
+      pm.test('Existe una nota de ejemplo del curso EIF411', () => pm.expect(sample).to.exist);
+      pm.collectionVariables.set('aiUserId', sample.userId);
+      pm.collectionVariables.set('aiCourseId', sample.courseId);
+    language: text/javascript
+order: 1000

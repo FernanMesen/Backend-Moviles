@@ -1,0 +1,26 @@
+$kind: http-request
+url: "{{baseUrl}}/courses"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "code": "{{evalCourseCode}}",
+      "name": "Curso temporal de evaluaciones"
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      const runId = Date.now();
+      pm.collectionVariables.set("evalRunId", runId);
+      pm.collectionVariables.set("evalCourseCode", "PM-" + runId);
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 201", () => pm.response.to.have.status(201));
+      pm.collectionVariables.set("evalCourseId", pm.response.json().id);
+    language: text/javascript
+order: 4000

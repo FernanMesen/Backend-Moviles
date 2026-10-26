@@ -1,0 +1,24 @@
+$kind: http-request
+url: "{{baseUrl}}/security-logs?userId={{demoUserId}}"
+method: GET
+headers:
+  Accept: application/json
+queryParams:
+  userId: "{{demoUserId}}"
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminToken}}"
+scripts:
+  - type: beforeRequest
+    code: "['academicBeforeLOGIN_FAILED', 'academicBeforeLOGIN', 'academicCourseId', 'academicEnrollmentId'].forEach(key => pm.collectionVariables.unset(key));"
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200', () => pm.response.to.have.status(200));
+      pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));
+      const body = pm.response.json();
+      pm.test('Respuesta es array', () => pm.expect(body).to.be.an('array'));
+      pm.test('Guardar referencia por evento', () => { ['LOGIN_FAILED', 'LOGIN'].forEach(type => { const ids = body.filter(log => log.eventType === type).map(log => log.id); pm.collectionVariables.set('academicBefore' + type, Math.max(0, ...ids)); }); });
+    language: text/javascript
+order: 30000

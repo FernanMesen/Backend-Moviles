@@ -1,0 +1,25 @@
+$kind: http-request
+url: "{{baseUrl}}/courses/{{evalCourseId}}/assessments"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "Evaluación tipo inválido {{evalRunId}}",
+      "questions": [
+        {
+          "text": "Pregunta",
+          "options": ["A", "B"],
+          "correctOptionIndex": 0
+        }
+      ],
+      "type": "FOO"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test("Status code es 400", () => pm.response.to.have.status(400));
+    language: text/javascript
+order: 15000

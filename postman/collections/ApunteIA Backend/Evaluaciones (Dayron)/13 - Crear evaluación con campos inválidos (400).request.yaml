@@ -1,0 +1,21 @@
+$kind: http-request
+url: "{{baseUrl}}/courses/{{evalCourseId}}/assessments"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "",
+      "questions": []
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 400", () => pm.response.to.have.status(400));
+      pm.test("Reporta error en title", () => pm.expect(pm.response.json().fieldErrors).to.have.property("title"));
+      pm.test("Reporta error en questions", () => pm.expect(pm.response.json().fieldErrors).to.have.property("questions"));
+    language: text/javascript
+order: 13000

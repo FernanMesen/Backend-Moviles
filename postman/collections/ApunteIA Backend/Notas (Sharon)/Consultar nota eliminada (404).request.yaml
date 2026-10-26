@@ -9,4 +9,4 @@ scripts:
       pm.test("Status code es 404", () => pm.response.to.have.status(404));
       pm.test("Error de recurso inexistente", () => { const error = pm.response.json(); pm.expect(error.status).to.eql(404); pm.expect(error).to.have.property("message"); });
     language: text/javascript
-order: 11000
+order: 12000

@@ -1,0 +1,20 @@
+$kind: http-request
+url: "{{baseUrl}}/assessments/{{evalAssessmentId}}/attempts"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "userId": {{evalUserId}}
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 201", () => pm.response.to.have.status(201));
+      pm.test("Nuevo intento en progreso", () => pm.expect(pm.response.json().status).to.eql("IN_PROGRESS"));
+      pm.collectionVariables.set("evalSecondAttemptId", pm.response.json().id);
+    language: text/javascript
+order: 32000

@@ -1,0 +1,22 @@
+$kind: http-request
+url: "{{baseUrl}}/attempts/{{evalAttemptId}}/submit"
+method: PATCH
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "answers": [1, 1]
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 200", () => pm.response.to.have.status(200));
+      const attempt = pm.response.json();
+      pm.test("Queda completado con puntaje 50", () => { pm.expect(attempt.status).to.eql("COMPLETED"); pm.expect(attempt.score).to.eql(50); pm.expect(attempt.completedAt).to.not.eql(null); });
+      pm.test("Califica cada respuesta", () => pm.expect(attempt.answers.map(a => a.correct)).to.eql([true, false]));
+      pm.test("Duración no negativa", () => pm.expect(attempt.durationSeconds).to.be.at.least(0));
+    language: text/javascript
+order: 29000

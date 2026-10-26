@@ -13,4 +13,4 @@ scripts:
       pm.test("Status code es 200", () => pm.response.to.have.status(200));
       pm.test("El nuevo estado es COMPLETED", () => pm.expect(pm.response.json().processingStatus).to.eql("COMPLETED"));
     language: text/javascript
-order: 8000
+order: 9000

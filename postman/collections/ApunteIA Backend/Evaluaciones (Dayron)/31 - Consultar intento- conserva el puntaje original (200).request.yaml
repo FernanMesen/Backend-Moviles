@@ -1,0 +1,13 @@
+$kind: http-request
+name: "31 - Consultar intento: conserva el puntaje original (200)"
+url: "{{baseUrl}}/attempts/{{evalAttemptId}}"
+method: GET
+headers:
+  Accept: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 200", () => pm.response.to.have.status(200));
+      pm.test("El reenvío no cambió el resultado", () => { const a = pm.response.json(); pm.expect(a.status).to.eql("COMPLETED"); pm.expect(a.score).to.eql(50); });
+    language: text/javascript
+order: 31000

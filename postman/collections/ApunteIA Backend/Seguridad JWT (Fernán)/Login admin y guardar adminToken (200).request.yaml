@@ -1,0 +1,25 @@
+$kind: http-request
+description: Usuario admin del IdentitySeeder. Guarda {{adminToken}} para las rutas solo-ADMIN (PATCH /users/{id}/status y /security-logs).
+url: "{{baseUrl}}/auth/login"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{adminEmail}}",
+      "password": "{{adminPassword}}"
+    }
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 200", () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test("Rol ADMIN", () => pm.expect(body.role).to.eql("ADMIN"));
+      pm.collectionVariables.set("adminToken", body.token);
+    language: text/javascript
+order: 1000

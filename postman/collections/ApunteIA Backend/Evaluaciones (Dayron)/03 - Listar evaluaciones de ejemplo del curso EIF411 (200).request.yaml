@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/courses/{{evalSeedCourseId}}/assessments"
+method: GET
+headers:
+  Accept: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 200", () => pm.response.to.have.status(200));
+      const list = pm.response.json();
+      pm.test("Incluye la evaluación sembrada", () => pm.expect(list.map(a => a.title)).to.include("Introducción al Backend"));
+      pm.test("Todas pertenecen al curso", () => list.forEach(a => pm.expect(a.courseId).to.eql(Number(pm.collectionVariables.get("evalSeedCourseId")))));
+      pm.test("No expone la opción correcta", () => pm.expect(list[0].questions[0]).to.not.have.property("correctOptionIndex"));
+    language: text/javascript
+order: 3000

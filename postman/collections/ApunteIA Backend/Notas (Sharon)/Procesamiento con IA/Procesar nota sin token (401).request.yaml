@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/notes/{{aiNoteId}}/process"
+method: POST
+headers:
+  Accept: application/json
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code es 401', () => pm.response.to.have.status(401));
+      pm.test('La respuesta indica falta de autenticación', () => pm.expect(pm.response.json().status).to.eql(401));
+    language: text/javascript
+order: 6000

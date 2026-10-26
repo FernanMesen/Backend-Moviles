@@ -20,4 +20,4 @@ scripts:
       const error = pm.response.json();
       pm.test("Error de validación con formato común", () => { pm.expect(error.status).to.eql(400); pm.expect(error).to.have.property("fieldErrors"); });
     language: text/javascript
-order: 2000
+order: 3000

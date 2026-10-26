@@ -38,3 +38,6 @@ class AiProviderException(message: String, cause: Throwable? = null) :
         if (cause != null) initCause(cause)
     }
 }
+
+/** 503 — el proveedor de IA no está configurado. */
+class AiUnavailableException(message: String) : ApiException(HttpStatus.SERVICE_UNAVAILABLE, message)

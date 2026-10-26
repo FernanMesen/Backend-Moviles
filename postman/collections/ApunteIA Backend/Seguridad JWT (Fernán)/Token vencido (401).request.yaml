@@ -1,0 +1,29 @@
+$kind: http-request
+url: "{{baseUrl}}/courses"
+method: GET
+headers:
+  Accept: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{jwtExpired}}"
+scripts:
+  - type: beforeRequest
+    code: |-
+      // Arma un JWT HS256 con exp en el pasado, firmado con el secreto de desarrollo (jwtDevSecret).
+      const b64url = (wordArray) => CryptoJS.enc.Base64.stringify(wordArray).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
+      const now = Math.floor(Date.now() / 1000);
+      const header = b64url(CryptoJS.enc.Utf8.parse(JSON.stringify({ alg: "HS256", typ: "JWT" })));
+      const payload = b64url(CryptoJS.enc.Utf8.parse(JSON.stringify({ sub: String(pm.collectionVariables.get("jwtUserId")), iss: "apunteia-backend", email: pm.collectionVariables.get("demoEmail"), role: "STUDENT", iat: now - 7200, exp: now - 3600 })));
+      const signature = b64url(CryptoJS.HmacSHA256(header + "." + payload, pm.collectionVariables.get("jwtDevSecret")));
+      pm.collectionVariables.set("jwtExpired", header + "." + payload + "." + signature);
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 401", () => pm.response.to.have.status(401));
+      pm.test("Header WWW-Authenticate: Bearer", () => pm.expect(pm.response.headers.get("WWW-Authenticate")).to.eql("Bearer"));
+      const err = pm.response.json();
+      pm.test("Formato ErrorResponse", () => { pm.expect(err.status).to.eql(401); pm.expect(err.error).to.eql("Unauthorized"); pm.expect(err.message).to.be.a("string"); pm.expect(err.path).to.be.a("string"); });
+      pm.test("Mensaje de expiración (o firma distinta si se corre contra la nube)", () => pm.expect(err.message).to.be.oneOf(["El token expiró. Inicie sesión de nuevo", "El token no es válido"]));
+    language: text/javascript
+order: 7000

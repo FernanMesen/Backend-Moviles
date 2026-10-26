@@ -1,0 +1,16 @@
+$kind: http-request
+url: "{{baseUrl}}/attempts/{{evalAttemptId}}/submit"
+method: PATCH
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: "{}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 400", () => pm.response.to.have.status(400));
+      pm.test("Reporta error en answers", () => pm.expect(pm.response.json().fieldErrors).to.have.property("answers"));
+    language: text/javascript
+order: 27000

@@ -1,0 +1,25 @@
+$kind: http-request
+name: "Estudiante en ruta de ADMIN: cambiar estado (403)"
+url: "{{baseUrl}}/users/{{jwtUserId}}/status"
+method: PATCH
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "status": "BLOCKED"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{token}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 403", () => pm.response.to.have.status(403));
+      const err = pm.response.json();
+      pm.test("Formato ErrorResponse 403", () => { pm.expect(err.status).to.eql(403); pm.expect(err.message).to.eql("No tiene permisos para realizar esta acción"); });
+    language: text/javascript
+order: 10000

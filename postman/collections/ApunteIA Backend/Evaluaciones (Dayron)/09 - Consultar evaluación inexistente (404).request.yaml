@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/assessments/999999999"
+method: GET
+headers:
+  Accept: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 404", () => pm.response.to.have.status(404));
+      pm.test("El mensaje menciona: No existe una evaluación con id", () => pm.expect(pm.response.json().message).to.include("No existe una evaluación con id"));
+    language: text/javascript
+order: 9000

@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/courses"
+method: GET
+headers:
+  Accept: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{jwtTempToken}}"
+scripts:
+  - type: afterResponse
+    code: pm.test("Status code es 200", () => pm.response.to.have.status(200));
+    language: text/javascript
+order: 14000

@@ -1,0 +1,22 @@
+$kind: http-request
+url: "{{baseUrl}}/security-logs?eventType=LOGIN"
+method: GET
+headers:
+  Accept: application/json
+queryParams:
+  eventType: LOGIN
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200', () => pm.response.to.have.status(200));
+      pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));
+      const body = pm.response.json();
+      pm.test('Respuesta es un array', () => pm.expect(body).to.be.an('array'));
+      pm.test('DTOs de auditoría sin entidades ni credenciales', () => { body.forEach(log => { pm.expect(log).to.have.all.keys('id', 'eventType', 'userId', 'userFullName', 'details', 'ipAddress', 'occurredAt'); pm.expect(log.id).to.be.a('number').and.above(0); pm.expect(log.eventType).to.be.a('string').and.not.empty; pm.expect(log.occurredAt).to.be.a('string').and.not.empty; pm.expect(log.userId === null || (Number.isInteger(log.userId) && log.userId > 0)).to.eql(true); pm.expect(log.userFullName === null || typeof log.userFullName === 'string').to.eql(true); }); });
+      pm.test('Todos los resultados corresponden a LOGIN', () => body.forEach(log => pm.expect(log.eventType).to.eql('LOGIN')));
+    language: text/javascript
+order: 24000

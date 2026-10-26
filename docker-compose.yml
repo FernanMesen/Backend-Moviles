@@ -27,6 +27,10 @@ services:
       DB_URL: jdbc:postgresql://db:5432/apunteia
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      AI_API_KEY: "${AI_API_KEY:-${OPENAI_API_KEY:-}}"
+      AI_MODEL: "${AI_MODEL:-${OPENAI_MODEL:-gpt-4o-mini}}"
+      AI_BASE_URL: ${AI_BASE_URL:-https://api.openai.com/v1}
+      AI_TIMEOUT_SECONDS: ${AI_TIMEOUT_SECONDS:-30}
       JWT_SECRET: ${JWT_SECRET:-dev-only-apunteia-jwt-secret-cambiar-en-produccion-0123456789}
     ports:
       - "8080:8080"

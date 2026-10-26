@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/courses/{{academicCourseId}}"
+method: DELETE
+headers:
+  Accept: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 204', () => pm.response.to.have.status(204));
+      pm.test('Sin cuerpo', () => pm.expect(pm.response.text()).to.eql(''));
+      if (pm.response.code === 204) ['academicCourseId', 'academicCourseCode', 'academicBeforeLOGIN_FAILED', 'academicBeforeLOGIN'].forEach(key => pm.collectionVariables.unset(key));
+    language: text/javascript
+order: 40000

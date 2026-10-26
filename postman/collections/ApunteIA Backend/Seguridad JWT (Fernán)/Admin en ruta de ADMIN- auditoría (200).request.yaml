@@ -1,0 +1,17 @@
+$kind: http-request
+name: "Admin en ruta de ADMIN: auditoría (200)"
+url: "{{baseUrl}}/security-logs"
+method: GET
+headers:
+  Accept: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 200", () => pm.response.to.have.status(200));
+      pm.test("Devuelve los logs", () => pm.expect(pm.response.json()).to.be.an("array"));
+    language: text/javascript
+order: 11000

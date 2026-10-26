@@ -1,0 +1,26 @@
+$kind: http-request
+url: "{{baseUrl}}/auth/register"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "fullName": "Usuario JWT Temporal",
+      "email": "{{jwtTempEmail}}",
+      "password": "123456"
+    }
+auth:
+  type: noauth
+scripts:
+  - type: beforeRequest
+    code: pm.collectionVariables.set("jwtTempEmail", `jwt.${Date.now()}@apunteia.com`);
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 201", () => pm.response.to.have.status(201));
+      pm.collectionVariables.set("jwtTempUserId", pm.response.json().id);
+    language: text/javascript
+order: 12000

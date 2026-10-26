@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/users/{{evalUserId}}/attempts"
+method: GET
+headers:
+  Accept: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 200", () => pm.response.to.have.status(200));
+      const attempts = pm.response.json();
+      pm.test("Todos son del usuario", () => attempts.forEach(a => pm.expect(a.userId).to.eql(Number(pm.collectionVariables.get("evalUserId")))));
+      pm.test("Incluye los dos intentos creados", () => { const ids = attempts.map(a => a.id); pm.expect(ids).to.include(Number(pm.collectionVariables.get("evalAttemptId"))); pm.expect(ids).to.include(Number(pm.collectionVariables.get("evalSecondAttemptId"))); });
+      pm.test("El más reciente va primero", () => pm.expect(attempts[0].id).to.eql(Number(pm.collectionVariables.get("evalSecondAttemptId"))));
+    language: text/javascript
+order: 33000

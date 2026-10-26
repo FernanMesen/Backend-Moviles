@@ -1,0 +1,19 @@
+$kind: http-request
+url: "{{baseUrl}}/attempts/999999999/submit"
+method: PATCH
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "answers": [1, 0]
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 404", () => pm.response.to.have.status(404));
+      pm.test("El mensaje menciona: No existe un intento con id", () => pm.expect(pm.response.json().message).to.include("No existe un intento con id"));
+    language: text/javascript
+order: 28000

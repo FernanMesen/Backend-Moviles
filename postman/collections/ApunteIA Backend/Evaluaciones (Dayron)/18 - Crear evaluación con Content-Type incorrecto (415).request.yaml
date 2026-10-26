@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/courses/{{evalCourseId}}/assessments"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: text/plain
+body:
+  type: text
+  content: title=sin json
+scripts:
+  - type: afterResponse
+    code: pm.test("Status code es 415", () => pm.response.to.have.status(415));
+    language: text/javascript
+order: 18000

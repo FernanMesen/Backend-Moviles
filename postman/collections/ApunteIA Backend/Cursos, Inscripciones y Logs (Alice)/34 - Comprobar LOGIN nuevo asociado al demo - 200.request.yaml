@@ -1,0 +1,23 @@
+$kind: http-request
+url: "{{baseUrl}}/security-logs?userId={{demoUserId}}&eventType=LOGIN"
+method: GET
+headers:
+  Accept: application/json
+queryParams:
+  userId: "{{demoUserId}}"
+  eventType: LOGIN
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200', () => pm.response.to.have.status(200));
+      pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));
+      const body = pm.response.json();
+      pm.test('Respuesta es array', () => pm.expect(body).to.be.an('array'));
+      pm.test('Lista no vacia con LOGIN del usuario solicitado', () => { pm.expect(body).to.not.be.empty; body.forEach(log => { pm.expect(log.userId).to.eql(Number(pm.collectionVariables.get('demoUserId'))); pm.expect(log.eventType).to.eql('LOGIN'); }); });
+      pm.test('El LOGIN mas reciente es nuevo', () => pm.expect(body[0].id).to.be.above(Number(pm.collectionVariables.get('academicBeforeLOGIN'))));
+    language: text/javascript
+order: 34000

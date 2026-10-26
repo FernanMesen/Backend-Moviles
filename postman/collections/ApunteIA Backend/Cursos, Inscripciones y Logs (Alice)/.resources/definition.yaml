@@ -1,0 +1,9 @@
+$kind: collection
+description: "Issue #33. Ejecutar esta carpeta completa en orden con el environment ApunteIA Local. Descubre el usuario demo, genera un código ?nico, comprueba errores y filtros, y elimina la inscripción y el curso temporales. Los logs son solo lectura; los filtros admiten listas vacías. Reinicia las variables académicas en la primera petición. Si la ejecución se interrumpe antes de la limpieza, pueden quedar datos temporales. No depende de las carpetas de otros integrantes."
+auth:
+  - id: 33387e5d-bdd4-490d-9ac5-71178eaff153
+    type: bearer
+    name: bearer auth
+    credentials:
+      token: "{{token}}"
+order: 4000

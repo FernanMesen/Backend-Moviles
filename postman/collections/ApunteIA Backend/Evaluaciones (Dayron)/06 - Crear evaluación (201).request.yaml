@@ -1,0 +1,41 @@
+$kind: http-request
+url: "{{baseUrl}}/courses/{{evalCourseId}}/assessments"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "Quiz Postman {{evalRunId}}",
+      "description": "Evaluación creada desde Postman",
+      "type": "QUIZ",
+      "difficulty": "EASY",
+      "durationMinutes": 10,
+      "createdByUserId": {{evalOtherUserId}},
+      "questions": [
+        {
+          "text": "¿Qué método HTTP crea un recurso?",
+          "options": ["GET", "POST", "DELETE"],
+          "correctOptionIndex": 1
+        },
+        {
+          "text": "¿Qué abstrae el patrón Repositorio?",
+          "options": ["El acceso a datos", "La interfaz"],
+          "correctOptionIndex": 0
+        }
+      ]
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 201", () => pm.response.to.have.status(201));
+      const assessment = pm.response.json();
+      pm.test("Responde con Location", () => pm.expect(pm.response.headers.get("Location")).to.include("/assessments/" + assessment.id));
+      pm.test("Asociada al curso y al creador", () => { pm.expect(assessment.courseId).to.eql(Number(pm.collectionVariables.get("evalCourseId"))); pm.expect(assessment.createdByUserId).to.eql(Number(pm.collectionVariables.get("evalOtherUserId"))); });
+      pm.test("Conserva tipo, dificultad y preguntas", () => { pm.expect(assessment.type).to.eql("QUIZ"); pm.expect(assessment.difficulty).to.eql("EASY"); pm.expect(assessment.totalQuestions).to.eql(2); });
+      pm.test("No expone la opción correcta", () => assessment.questions.forEach(q => pm.expect(q).to.not.have.property("correctOptionIndex")));
+      pm.collectionVariables.set("evalAssessmentId", assessment.id);
+    language: text/javascript
+order: 6000

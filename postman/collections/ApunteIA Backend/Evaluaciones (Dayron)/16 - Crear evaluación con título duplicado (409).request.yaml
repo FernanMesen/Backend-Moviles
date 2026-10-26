@@ -1,0 +1,26 @@
+$kind: http-request
+url: "{{baseUrl}}/courses/{{evalCourseId}}/assessments"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "Quiz Postman {{evalRunId}}",
+      "questions": [
+        {
+          "text": "Pregunta",
+          "options": ["A", "B"],
+          "correctOptionIndex": 0
+        }
+      ]
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 409", () => pm.response.to.have.status(409));
+      pm.test("El mensaje menciona: Ya existe una evaluación con el título", () => pm.expect(pm.response.json().message).to.include("Ya existe una evaluación con el título"));
+    language: text/javascript
+order: 16000

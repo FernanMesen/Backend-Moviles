@@ -1,0 +1,19 @@
+$kind: http-request
+url: "{{baseUrl}}/attempts/{{evalAttemptId}}/submit"
+method: PATCH
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "answers": [1, 9]
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 400", () => pm.response.to.have.status(400));
+      pm.test("El mensaje menciona: fuera del rango", () => pm.expect(pm.response.json().message).to.include("fuera del rango"));
+    language: text/javascript
+order: 26000

@@ -1,0 +1,27 @@
+$kind: http-request
+url: "{{baseUrl}}/courses/{{evalCourseId}}/assessments"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "Evaluación creador inválido {{evalRunId}}",
+      "questions": [
+        {
+          "text": "Pregunta",
+          "options": ["A", "B"],
+          "correctOptionIndex": 0
+        }
+      ],
+      "createdByUserId": 999999999
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 404", () => pm.response.to.have.status(404));
+      pm.test("El mensaje menciona: No existe un usuario con id", () => pm.expect(pm.response.json().message).to.include("No existe un usuario con id"));
+    language: text/javascript
+order: 17000

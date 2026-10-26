@@ -8,6 +8,7 @@ import ApunteIA.BackEnd.entity.Note
 import ApunteIA.BackEnd.entity.ProcessingStatus
 import ApunteIA.BackEnd.exception.ConflictException
 import ApunteIA.BackEnd.exception.AiProviderException
+import ApunteIA.BackEnd.exception.AiUnavailableException
 import ApunteIA.BackEnd.exception.NotFoundException
 import ApunteIA.BackEnd.mapper.NoteMapper
 import ApunteIA.BackEnd.repository.CourseRepository
@@ -66,9 +67,15 @@ class NoteServiceImpl(
     override fun processWithAi(id: Long): NoteResponse {
         val content = noteProcessingStateService.begin(id)
         return try {
-            val summary = aiClient.summarize(content)
+            val summary = aiClient.complete(
+                SYSTEM_PROMPT,
+                "Título: ${content.title}\n\n${content.content}",
+            )
             noteProcessingStateService.complete(id, summary)
         } catch (ex: AiProviderException) {
+            noteProcessingStateService.fail(id)
+            throw ex
+        } catch (ex: AiUnavailableException) {
             noteProcessingStateService.fail(id)
             throw ex
         }
@@ -103,4 +110,9 @@ class NoteServiceImpl(
             .orElseThrow { NotFoundException("No existe un usuario con id $userId") } to
             courseRepository.findById(requireNotNull(courseId))
                 .orElseThrow { NotFoundException("No existe un curso con id $courseId") }
+
+    private companion object {
+        const val SYSTEM_PROMPT = """Sos un asistente de estudio. Resumí el apunte del estudiante en español,
+en máximo 8 viñetas claras, con los conceptos clave y sin inventar información."""
+    }
 }

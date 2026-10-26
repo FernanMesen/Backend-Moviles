@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 
+data class NoteProcessingInput(val title: String, val content: String)
+
 /** Persiste las transiciones por separado de la llamada HTTP al proveedor. */
 @Service
 class NoteProcessingStateService(
@@ -18,13 +20,14 @@ class NoteProcessingStateService(
     private val noteMapper: NoteMapper,
 ) {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    fun begin(id: Long): String {
+    fun begin(id: Long): NoteProcessingInput {
         val note = findNoteOrThrow(id)
         if (note.processingStatus != ProcessingStatus.PENDING) {
             throw ConflictException("Solo se pueden procesar notas en estado PENDING; la nota está en ${note.processingStatus}")
         }
         note.processingStatus = ProcessingStatus.PROCESSING
-        return noteRepository.saveAndFlush(note).content
+        val processingNote = noteRepository.saveAndFlush(note)
+        return NoteProcessingInput(processingNote.title, processingNote.content)
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)

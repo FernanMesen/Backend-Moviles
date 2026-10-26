@@ -1,0 +1,3 @@
+$kind: collection
+description: "Evaluaciones e intentos: crear y consultar evaluaciones de un curso, iniciar un intento, enviar respuestas, puntaje y reenvío de un intento completado (409). Usa IDs dinámicos y un curso temporal; ejecutar en orden de arriba hacia abajo."
+order: 5000

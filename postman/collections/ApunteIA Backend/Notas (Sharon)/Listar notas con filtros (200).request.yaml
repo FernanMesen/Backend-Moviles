@@ -14,4 +14,4 @@ scripts:
       const notes = pm.response.json();
       pm.test("Incluye la nota creada", () => pm.expect(notes.some(note => String(note.id) === String(pm.collectionVariables.get("noteId")))).to.eql(true));
     language: text/javascript
-order: 4000
+order: 5000

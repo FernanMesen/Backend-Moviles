@@ -4,6 +4,8 @@ description: |-
 
   Cada integrante agrega su carpeta: Auth y Usuarios (Fernán), Cursos/Inscripciones/Logs (Alice), Notas (Sharon), Evaluaciones (Dayron).
 
+  Seguridad: la colección usa Bearer {{token}} (lo guarda el login). Las rutas solo-ADMIN usan {{adminToken}}. Correr primero la carpeta 'Seguridad JWT (Fernán)'.
+
   Variable {{baseUrl}}: http://localhost:8080 (local o Docker). Correr en orden con el Collection Runner.
 variables:
   baseUrl: http://localhost:8080
@@ -12,6 +14,25 @@ variables:
   token: ""
   newEmail: ""
   newUserId: ""
+  adminEmail: admin@apunteia.com
+  adminPassword: Admin123!
+  adminToken: ""
+  jwtUserId: ""
+  jwtTampered: ""
+  jwtExpired: ""
+  jwtDevSecret: dev-only-apunteia-jwt-secret-cambiar-en-produccion-0123456789
+  jwtTempEmail: ""
+  jwtTempToken: ""
+  jwtTempUserId: ""
+  aiUserId: ""
+  aiCourseId: ""
+  aiNoteId: ""
   noteUserId: ""
   noteCourseId: ""
   noteId: ""
+auth:
+  - id: 0936dfc7-f26d-402c-bf99-823ae984496d
+    type: bearer
+    name: bearer auth
+    credentials:
+      token: "{{token}}"

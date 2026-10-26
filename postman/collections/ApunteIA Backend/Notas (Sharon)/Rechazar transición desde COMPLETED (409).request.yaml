@@ -13,4 +13,4 @@ scripts:
       pm.test("Status code es 409", () => pm.response.to.have.status(409));
       pm.test("Error de conflicto con formato común", () => { const error = pm.response.json(); pm.expect(error.status).to.eql(409); pm.expect(error).to.have.property("message"); });
     language: text/javascript
-order: 9000
+order: 10000

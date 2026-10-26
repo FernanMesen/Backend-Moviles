@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/notes/{{aiNoteId}}/process"
+method: POST
+headers:
+  Accept: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code es 409', () => pm.response.to.have.status(409));
+      const error = pm.response.json();
+      pm.test('Responde con error de conflicto', () => { pm.expect(error.status).to.eql(409); pm.expect(error.message).to.be.a('string'); });
+    language: text/javascript
+order: 4000

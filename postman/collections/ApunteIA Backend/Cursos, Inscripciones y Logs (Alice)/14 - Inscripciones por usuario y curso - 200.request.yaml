@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{baseUrl}}/enrollments?userId={{demoUserId}}&courseId={{academicCourseId}}"
+method: GET
+headers:
+  Accept: application/json
+queryParams:
+  userId: "{{demoUserId}}"
+  courseId: "{{academicCourseId}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200', () => pm.response.to.have.status(200));
+      pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));
+      const body = pm.response.json();
+      pm.test('Respuesta es un array', () => pm.expect(body).to.be.an('array'));
+      pm.test('Intersección contiene ?nicamente la inscripción creada', () => { pm.expect(body.length).to.eql(1); pm.expect(body[0].id).to.eql(Number(pm.collectionVariables.get('academicEnrollmentId'))); pm.expect(body[0].userId).to.eql(Number(pm.collectionVariables.get('demoUserId'))); pm.expect(body[0].courseId).to.eql(Number(pm.collectionVariables.get('academicCourseId'))); });
+    language: text/javascript
+order: 14000

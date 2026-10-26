@@ -1,0 +1,18 @@
+$kind: http-request
+name: "Estudiante en ruta de ADMIN: auditoría (403)"
+url: "{{baseUrl}}/security-logs"
+method: GET
+headers:
+  Accept: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{token}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 403", () => pm.response.to.have.status(403));
+      const err = pm.response.json();
+      pm.test("Formato ErrorResponse 403", () => { pm.expect(err.status).to.eql(403); pm.expect(err.message).to.eql("No tiene permisos para realizar esta acción"); });
+    language: text/javascript
+order: 9000

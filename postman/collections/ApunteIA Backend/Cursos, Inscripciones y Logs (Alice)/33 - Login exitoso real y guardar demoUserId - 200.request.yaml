@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{baseUrl}}/auth/login"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"email":"demo@apunteia.com","password":"123456"}'
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200', () => pm.response.to.have.status(200));
+      pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));
+      const body = pm.response.json();
+      pm.test('Token y usuario demo validos; guardar ID', () => { pm.expect(body.token).to.be.a('string').and.not.empty; pm.expect(Number.isInteger(body.userId) && body.userId > 0).to.eql(true); pm.expect(body.email).to.eql('demo@apunteia.com'); pm.collectionVariables.set('demoUserId', body.userId); });
+    language: text/javascript
+order: 33000

@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/notes/999999999999/process"
+method: POST
+headers:
+  Accept: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code es 404', () => pm.response.to.have.status(404));
+      pm.test('El error identifica la nota inexistente', () => pm.expect(pm.response.json().status).to.eql(404));
+    language: text/javascript
+order: 5000

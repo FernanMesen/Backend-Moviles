@@ -1,0 +1,34 @@
+$kind: http-request
+description: Usuario demo (STUDENT). Guarda {{token}}, que la colección manda como Bearer en todas las peticiones.
+url: "{{baseUrl}}/auth/login"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{demoEmail}}",
+      "password": "{{demoPassword}}"
+    }
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 200", () => pm.response.to.have.status(200));
+      const decode = (part) => JSON.parse(Buffer.from(part.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8"));
+      const body = pm.response.json();
+      const parts = body.token.split(".");
+      pm.test("Es un JWT (header.payload.firma)", () => pm.expect(parts).to.have.lengthOf(3));
+      pm.test("tokenType Bearer y expiresIn", () => { pm.expect(body.tokenType).to.eql("Bearer"); pm.expect(body.expiresIn).to.be.above(0); });
+      const header = decode(parts[0]); const payload = decode(parts[1]);
+      pm.test("Firmado con HS256", () => pm.expect(header.alg).to.eql("HS256"));
+      pm.test("Claims sub, email, role, iss", () => { pm.expect(payload.sub).to.eql(String(body.userId)); pm.expect(payload.email).to.eql(body.email); pm.expect(payload.role).to.eql("STUDENT"); pm.expect(payload.iss).to.eql("apunteia-backend"); });
+      pm.test("exp = iat + expiresIn", () => pm.expect(payload.exp - payload.iat).to.eql(body.expiresIn));
+      pm.test("No incluye la contraseña", () => pm.expect(JSON.stringify(payload)).to.not.include("password"));
+      pm.collectionVariables.set("token", body.token);
+      pm.collectionVariables.set("jwtUserId", body.userId);
+    language: text/javascript
+order: 2000

@@ -1,0 +1,19 @@
+$kind: http-request
+url: "{{baseUrl}}/courses"
+method: GET
+headers:
+  Accept: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{jwtTempToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 401", () => pm.response.to.have.status(401));
+      pm.test("Header WWW-Authenticate: Bearer", () => pm.expect(pm.response.headers.get("WWW-Authenticate")).to.eql("Bearer"));
+      const err = pm.response.json();
+      pm.test("Formato ErrorResponse", () => { pm.expect(err.status).to.eql(401); pm.expect(err.error).to.eql("Unauthorized"); pm.expect(err.message).to.be.a("string"); pm.expect(err.path).to.be.a("string"); });
+      pm.test("Mensaje: La cuenta del token ya no está activa", () => pm.expect(err.message).to.include("La cuenta del token ya no está activa"));
+    language: text/javascript
+order: 16000

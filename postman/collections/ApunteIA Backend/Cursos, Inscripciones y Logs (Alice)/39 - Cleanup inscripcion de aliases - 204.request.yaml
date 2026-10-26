@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/enrollments/{{academicEnrollmentId}}"
+method: DELETE
+headers:
+  Accept: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 204', () => pm.response.to.have.status(204));
+      pm.test('Sin cuerpo', () => pm.expect(pm.response.text()).to.eql(''));
+      if (pm.response.code === 204) pm.collectionVariables.unset('academicEnrollmentId');
+    language: text/javascript
+order: 39000

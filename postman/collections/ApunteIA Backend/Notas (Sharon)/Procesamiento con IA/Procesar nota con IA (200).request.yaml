@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/notes/{{aiNoteId}}/process"
+method: POST
+headers:
+  Accept: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code es 200', () => pm.response.to.have.status(200));
+      const note = pm.response.json();
+      pm.test('Devuelve el id solicitado', () => pm.expect(String(note.id)).to.eql(String(pm.collectionVariables.get('aiNoteId'))));
+      pm.test('El procesamiento termina en COMPLETED', () => pm.expect(note.processingStatus).to.eql('COMPLETED'));
+      pm.test('El resumen de IA quedó guardado', () => pm.expect(note.summary).to.be.a('string').and.not.empty);
+    language: text/javascript
+order: 3000

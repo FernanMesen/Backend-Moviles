@@ -1,0 +1,24 @@
+$kind: http-request
+url: "{{baseUrl}}/notes"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "Nota para resumen con IA",
+      "content": "La fotosíntesis es el proceso por el cual las plantas convierten la luz solar, el agua y el dióxido de carbono en glucosa y oxígeno. La clorofila capta la energía luminosa. La glucosa almacena energía química que la planta utiliza para crecer.",
+      "userId": {{aiUserId}},
+      "courseId": {{aiCourseId}}
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code es 201', () => pm.response.to.have.status(201));
+      const note = pm.response.json();
+      pm.test('La nota nueva inicia en PENDING', () => pm.expect(note.processingStatus).to.eql('PENDING'));
+      pm.collectionVariables.set('aiNoteId', note.id);
+    language: text/javascript
+order: 2000

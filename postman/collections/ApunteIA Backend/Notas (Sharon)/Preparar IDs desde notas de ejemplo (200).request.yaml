@@ -13,4 +13,4 @@ scripts:
       pm.collectionVariables.set("noteUserId", sample.userId);
       pm.collectionVariables.set("noteCourseId", sample.courseId);
     language: text/javascript
-order: 1000
+order: 2000

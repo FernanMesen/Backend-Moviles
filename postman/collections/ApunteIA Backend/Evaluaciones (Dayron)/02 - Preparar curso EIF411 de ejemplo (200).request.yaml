@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/courses"
+method: GET
+headers:
+  Accept: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 200", () => pm.response.to.have.status(200));
+      const seedCourse = pm.response.json().find(course => course.code === "EIF411");
+      pm.test("Existe el curso sembrado EIF411", () => pm.expect(seedCourse).to.exist);
+      pm.collectionVariables.set("evalSeedCourseId", seedCourse.id);
+    language: text/javascript
+order: 2000
