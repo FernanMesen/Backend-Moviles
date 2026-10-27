@@ -2697,7 +2697,29 @@
                     "const note = pm.response.json();",
                     "pm.test('Devuelve el id solicitado', () => pm.expect(String(note.id)).to.eql(String(pm.collectionVariables.get('aiNoteId'))));",
                     "pm.test('El procesamiento termina en COMPLETED', () => pm.expect(note.processingStatus).to.eql('COMPLETED'));",
+                    "pm.collectionVariables.set('aiSummary', note.summary);",
                     "pm.test('El resumen de IA quedó guardado', () => pm.expect(note.summary).to.be.a('string').and.not.empty);"
+                  ]
+                }
+              }]
+            },
+            {
+              "name": "Verificar resumen persistido (200)",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Accept", "value": "application/json" }],
+                "url": "{{baseUrl}}/notes/{{aiNoteId}}"
+              },
+              "event": [{
+                "listen": "test",
+                "script": {
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('Status code es 200', () => pm.response.to.have.status(200));",
+                    "const note = pm.response.json();",
+                    "pm.test('Devuelve la nota procesada', () => pm.expect(String(note.id)).to.eql(String(pm.collectionVariables.get('aiNoteId'))));",
+                    "pm.test('La nota sigue en COMPLETED', () => pm.expect(note.processingStatus).to.eql('COMPLETED'));",
+                    "pm.test('El resumen quedó persistido', () => pm.expect(note.summary).to.eql(pm.collectionVariables.get('aiSummary')));"
                   ]
                 }
               }]

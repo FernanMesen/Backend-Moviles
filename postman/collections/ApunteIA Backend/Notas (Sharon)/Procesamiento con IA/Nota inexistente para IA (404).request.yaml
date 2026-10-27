@@ -9,4 +9,4 @@ scripts:
       pm.test('Status code es 404', () => pm.response.to.have.status(404));
       pm.test('El error identifica la nota inexistente', () => pm.expect(pm.response.json().status).to.eql(404));
     language: text/javascript
-order: 5000
+order: 6000

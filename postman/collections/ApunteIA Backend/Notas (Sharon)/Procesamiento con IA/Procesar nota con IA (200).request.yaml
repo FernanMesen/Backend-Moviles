@@ -10,6 +10,7 @@ scripts:
       const note = pm.response.json();
       pm.test('Devuelve el id solicitado', () => pm.expect(String(note.id)).to.eql(String(pm.collectionVariables.get('aiNoteId'))));
       pm.test('El procesamiento termina en COMPLETED', () => pm.expect(note.processingStatus).to.eql('COMPLETED'));
+      pm.collectionVariables.set('aiSummary', note.summary);
       pm.test('El resumen de IA quedó guardado', () => pm.expect(note.summary).to.be.a('string').and.not.empty);
     language: text/javascript
 order: 3000

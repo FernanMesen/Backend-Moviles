@@ -27,11 +27,8 @@ variables:
   aiUserId: ""
   aiCourseId: ""
   aiNoteId: ""
-  noteUserId: ""
-  noteCourseId: ""
-  noteId: ""
 auth:
-  - id: 0936dfc7-f26d-402c-bf99-823ae984496d
+  - id: 42a3ae81-4dd2-4072-aee1-cf7e5e7defff
     type: bearer
     name: bearer auth
     credentials:

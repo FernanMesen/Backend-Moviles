@@ -11,4 +11,4 @@ scripts:
       pm.test('Status code es 401', () => pm.response.to.have.status(401));
       pm.test('La respuesta indica falta de autenticación', () => pm.expect(pm.response.json().status).to.eql(401));
     language: text/javascript
-order: 6000
+order: 7000

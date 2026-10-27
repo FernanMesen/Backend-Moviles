@@ -10,4 +10,4 @@ scripts:
       const error = pm.response.json();
       pm.test('Responde con error de conflicto', () => { pm.expect(error.status).to.eql(409); pm.expect(error.message).to.be.a('string'); });
     language: text/javascript
-order: 4000
+order: 5000
