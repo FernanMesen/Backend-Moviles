@@ -9,6 +9,8 @@ import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Positive
 import jakarta.validation.constraints.PositiveOrZero
 import jakarta.validation.constraints.Size
+import jakarta.validation.constraints.Max
+import jakarta.validation.constraints.Min
 
 data class CreateQuestionRequest(
     @field:NotBlank(message = "El enunciado de la pregunta es obligatorio")
@@ -65,4 +67,13 @@ data class AssessmentResponse(
     val createdByUserId: Long?,
     val totalQuestions: Int,
     val questions: List<QuestionResponse>,
+)
+
+data class GenerateAssessmentRequest(
+    @field:NotNull(message = "La cantidad de preguntas es obligatoria")
+    @field:Min(value = 1, message = "Se debe generar al menos 1 pregunta")
+    @field:Max(value = 20, message = "No se pueden generar más de 20 preguntas")
+    val questionCount: Int? = null,
+
+    val difficulty: AssessmentDifficulty = AssessmentDifficulty.MEDIUM,
 )
