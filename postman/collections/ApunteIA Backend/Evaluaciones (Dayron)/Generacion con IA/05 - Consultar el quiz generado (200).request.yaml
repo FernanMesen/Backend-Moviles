@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/assessments/{{genAssessmentId}}"
+method: GET
+headers:
+  Accept: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 200", () => pm.response.to.have.status(200));
+      const quiz = pm.response.json();
+      pm.test("Devuelve el quiz guardado", () => { pm.expect(quiz.id).to.eql(Number(pm.collectionVariables.get("genAssessmentId"))); pm.expect(quiz.title).to.eql(pm.collectionVariables.get("genQuizTitle")); });
+      pm.test("Conserva las 3 preguntas", () => pm.expect(quiz.questions.length).to.eql(3));
+    language: text/javascript
+order: 5000

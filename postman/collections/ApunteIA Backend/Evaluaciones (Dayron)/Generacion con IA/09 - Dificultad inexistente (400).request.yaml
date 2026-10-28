@@ -1,0 +1,21 @@
+$kind: http-request
+url: "{{baseUrl}}/notes/{{genNoteId}}/assessments/generate"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "questionCount": 3,
+      "difficulty": "IMPOSIBLE"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 400", () => pm.response.to.have.status(400));
+      const error = pm.response.json();
+      pm.test("Responde con ErrorResponse 400", () => { pm.expect(error.status).to.eql(400); pm.expect(error.message).to.be.a("string"); });
+    language: text/javascript
+order: 9000

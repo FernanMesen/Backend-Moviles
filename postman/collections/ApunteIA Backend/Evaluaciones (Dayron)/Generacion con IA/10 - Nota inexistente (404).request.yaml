@@ -1,0 +1,20 @@
+$kind: http-request
+url: "{{baseUrl}}/notes/999999999999/assessments/generate"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "questionCount": 3,
+      "difficulty": "EASY"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 404", () => pm.response.to.have.status(404));
+      pm.test("El mensaje menciona: No existe una nota con id", () => pm.expect(pm.response.json().message).to.include("No existe una nota con id"));
+    language: text/javascript
+order: 10000

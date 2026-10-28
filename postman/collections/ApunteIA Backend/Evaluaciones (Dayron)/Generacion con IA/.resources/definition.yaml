@@ -1,0 +1,3 @@
+$kind: collection
+description: "Pruebas de POST /notes/{id}/assessments/generate. El 201 requiere AI_API_KEY configurada en el backend y cuota disponible; el login inicial guarda {{token}} del usuario demo, así que la carpeta se puede correr sola."
+order: 36000

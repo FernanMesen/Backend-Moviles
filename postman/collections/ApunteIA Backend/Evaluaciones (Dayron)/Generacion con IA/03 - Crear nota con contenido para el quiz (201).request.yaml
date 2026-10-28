@@ -1,0 +1,24 @@
+$kind: http-request
+url: "{{baseUrl}}/notes"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "Fotosíntesis para quiz con IA",
+      "content": "La fotosíntesis es el proceso por el cual las plantas convierten la luz solar, el agua y el dióxido de carbono en glucosa y oxígeno. Ocurre en los cloroplastos, donde la clorofila capta la energía luminosa. Tiene dos fases: la fase luminosa, que produce ATP y NADPH, y el ciclo de Calvin, que fija el dióxido de carbono para formar glucosa. El oxígeno se libera como subproducto.",
+      "userId": {{genUserId}},
+      "courseId": {{genCourseId}}
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 201", () => pm.response.to.have.status(201));
+      const note = pm.response.json();
+      pm.test("La nota queda en el curso preparado", () => pm.expect(note.courseId).to.eql(Number(pm.collectionVariables.get("genCourseId"))));
+      pm.collectionVariables.set("genNoteId", note.id);
+    language: text/javascript
+order: 3000

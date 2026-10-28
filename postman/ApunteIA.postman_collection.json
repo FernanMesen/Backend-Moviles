@@ -5412,6 +5412,431 @@
               "listen": "test"
             }
           ]
+        },
+        {
+          "name": "Generación con IA",
+          "description": "Pruebas de POST /notes/{id}/assessments/generate. El 201 requiere AI_API_KEY configurada en el backend y cuota disponible; el login inicial guarda {{token}} del usuario demo, así que la carpeta se puede correr sola.",
+          "item": [
+            {
+              "name": "01 - Login del usuario demo y guardar token (200)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/auth/login",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{demoEmail}}\",\n  \"password\": \"{{demoPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "description": "Deja listo {{token}} y el id del usuario dueño del token, que será el creador del quiz generado.",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status code es 200\", () => pm.response.to.have.status(200));",
+                      "const login = pm.response.json();",
+                      "pm.test(\"Devuelve un JWT\", () => pm.expect(login.token).to.be.a(\"string\").and.not.empty);",
+                      "pm.collectionVariables.set(\"token\", login.token);",
+                      "pm.collectionVariables.set(\"genUserId\", login.userId);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "02 - Preparar curso EIF411 de ejemplo (200)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/courses"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status code es 200\", () => pm.response.to.have.status(200));",
+                      "const course = pm.response.json().find(item => item.code === \"EIF411\");",
+                      "pm.test(\"Existe el curso sembrado EIF411\", () => pm.expect(course).to.exist);",
+                      "pm.collectionVariables.set(\"genCourseId\", course.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "03 - Crear nota con contenido para el quiz (201)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/notes",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Fotosíntesis para quiz con IA\",\n  \"content\": \"La fotosíntesis es el proceso por el cual las plantas convierten la luz solar, el agua y el dióxido de carbono en glucosa y oxígeno. Ocurre en los cloroplastos, donde la clorofila capta la energía luminosa. Tiene dos fases: la fase luminosa, que produce ATP y NADPH, y el ciclo de Calvin, que fija el dióxido de carbono para formar glucosa. El oxígeno se libera como subproducto.\",\n  \"userId\": {{genUserId}},\n  \"courseId\": {{genCourseId}}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status code es 201\", () => pm.response.to.have.status(201));",
+                      "const note = pm.response.json();",
+                      "pm.test(\"La nota queda en el curso preparado\", () => pm.expect(note.courseId).to.eql(Number(pm.collectionVariables.get(\"genCourseId\"))));",
+                      "pm.collectionVariables.set(\"genNoteId\", note.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "04 - Generar quiz con IA (201)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/notes/{{genNoteId}}/assessments/generate",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"questionCount\": 3,\n  \"difficulty\": \"EASY\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "description": "Llama al proveedor de IA. Necesita AI_API_KEY en el backend.",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status code es 201\", () => pm.response.to.have.status(201));",
+                      "const quiz = pm.response.json();",
+                      "pm.test(\"Responde con Location\", () => pm.expect(pm.response.headers.get(\"Location\")).to.include(\"/assessments/\" + quiz.id));",
+                      "pm.test(\"Se guarda en el curso de la nota\", () => pm.expect(quiz.courseId).to.eql(Number(pm.collectionVariables.get(\"genCourseId\"))));",
+                      "pm.test(\"El creador sale del token\", () => pm.expect(quiz.createdByUserId).to.eql(Number(pm.collectionVariables.get(\"genUserId\"))));",
+                      "pm.test(\"Respeta dificultad y cantidad\", () => { pm.expect(quiz.difficulty).to.eql(\"EASY\"); pm.expect(quiz.type).to.eql(\"QUIZ\"); pm.expect(quiz.totalQuestions).to.eql(3); });",
+                      "pm.test(\"Cada pregunta trae enunciado y opciones sin exponer la respuesta\", () => quiz.questions.forEach(question => { pm.expect(question.text).to.be.a(\"string\").and.not.empty; pm.expect(question.options.length).to.be.at.least(2); pm.expect(question).to.not.have.property(\"correctOptionIndex\"); }));",
+                      "pm.collectionVariables.set(\"genAssessmentId\", quiz.id);",
+                      "pm.collectionVariables.set(\"genQuizTitle\", quiz.title);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "05 - Consultar el quiz generado (200)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/assessments/{{genAssessmentId}}"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status code es 200\", () => pm.response.to.have.status(200));",
+                      "const quiz = pm.response.json();",
+                      "pm.test(\"Devuelve el quiz guardado\", () => { pm.expect(quiz.id).to.eql(Number(pm.collectionVariables.get(\"genAssessmentId\"))); pm.expect(quiz.title).to.eql(pm.collectionVariables.get(\"genQuizTitle\")); });",
+                      "pm.test(\"Conserva las 3 preguntas\", () => pm.expect(quiz.questions.length).to.eql(3));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "06 - Cantidad de preguntas en cero (400)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/notes/{{genNoteId}}/assessments/generate",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"questionCount\": 0,\n  \"difficulty\": \"EASY\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status code es 400\", () => pm.response.to.have.status(400));",
+                      "pm.test(\"Reporta error en questionCount\", () => pm.expect(pm.response.json().fieldErrors).to.have.property(\"questionCount\"));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "07 - Cantidad de preguntas sobre el máximo (400)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/notes/{{genNoteId}}/assessments/generate",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"questionCount\": 21,\n  \"difficulty\": \"EASY\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status code es 400\", () => pm.response.to.have.status(400));",
+                      "pm.test(\"Reporta error en questionCount\", () => pm.expect(pm.response.json().fieldErrors).to.have.property(\"questionCount\"));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "08 - Sin cantidad de preguntas (400)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/notes/{{genNoteId}}/assessments/generate",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"difficulty\": \"EASY\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status code es 400\", () => pm.response.to.have.status(400));",
+                      "pm.test(\"Reporta error en questionCount\", () => pm.expect(pm.response.json().fieldErrors).to.have.property(\"questionCount\"));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "09 - Dificultad inexistente (400)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/notes/{{genNoteId}}/assessments/generate",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"questionCount\": 3,\n  \"difficulty\": \"IMPOSIBLE\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status code es 400\", () => pm.response.to.have.status(400));",
+                      "const error = pm.response.json();",
+                      "pm.test(\"Responde con ErrorResponse 400\", () => { pm.expect(error.status).to.eql(400); pm.expect(error.message).to.be.a(\"string\"); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "10 - Nota inexistente (404)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/notes/999999999999/assessments/generate",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"questionCount\": 3,\n  \"difficulty\": \"EASY\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status code es 404\", () => pm.response.to.have.status(404));",
+                      "pm.test(\"El mensaje menciona: No existe una nota con id\", () => pm.expect(pm.response.json().message).to.include(\"No existe una nota con id\"));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "11 - Generar quiz sin token (401)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/notes/{{genNoteId}}/assessments/generate",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"questionCount\": 3,\n  \"difficulty\": \"EASY\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status code es 401\", () => pm.response.to.have.status(401));",
+                      "const error = pm.response.json();",
+                      "pm.test(\"Formato ErrorResponse\", () => { pm.expect(error.status).to.eql(401); pm.expect(error.error).to.eql(\"Unauthorized\"); });",
+                      "pm.test(\"Mensaje: Falta el token\", () => pm.expect(error.message).to.include(\"Falta el token\"));"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
         }
       ]
     }

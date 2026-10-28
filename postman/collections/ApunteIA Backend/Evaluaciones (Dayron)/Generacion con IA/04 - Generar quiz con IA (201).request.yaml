@@ -1,0 +1,28 @@
+$kind: http-request
+description: "Llama al proveedor de IA. Necesita AI_API_KEY en el backend."
+url: "{{baseUrl}}/notes/{{genNoteId}}/assessments/generate"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "questionCount": 3,
+      "difficulty": "EASY"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 201", () => pm.response.to.have.status(201));
+      const quiz = pm.response.json();
+      pm.test("Responde con Location", () => pm.expect(pm.response.headers.get("Location")).to.include("/assessments/" + quiz.id));
+      pm.test("Se guarda en el curso de la nota", () => pm.expect(quiz.courseId).to.eql(Number(pm.collectionVariables.get("genCourseId"))));
+      pm.test("El creador sale del token", () => pm.expect(quiz.createdByUserId).to.eql(Number(pm.collectionVariables.get("genUserId"))));
+      pm.test("Respeta dificultad y cantidad", () => { pm.expect(quiz.difficulty).to.eql("EASY"); pm.expect(quiz.type).to.eql("QUIZ"); pm.expect(quiz.totalQuestions).to.eql(3); });
+      pm.test("Cada pregunta trae enunciado y opciones sin exponer la respuesta", () => quiz.questions.forEach(question => { pm.expect(question.text).to.be.a("string").and.not.empty; pm.expect(question.options.length).to.be.at.least(2); pm.expect(question).to.not.have.property("correctOptionIndex"); }));
+      pm.collectionVariables.set("genAssessmentId", quiz.id);
+      pm.collectionVariables.set("genQuizTitle", quiz.title);
+    language: text/javascript
+order: 4000

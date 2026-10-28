@@ -1,0 +1,24 @@
+$kind: http-request
+url: "{{baseUrl}}/notes/{{genNoteId}}/assessments/generate"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "questionCount": 3,
+      "difficulty": "EASY"
+    }
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code es 401", () => pm.response.to.have.status(401));
+      const error = pm.response.json();
+      pm.test("Formato ErrorResponse", () => { pm.expect(error.status).to.eql(401); pm.expect(error.error).to.eql("Unauthorized"); });
+      pm.test("Mensaje: Falta el token", () => pm.expect(error.message).to.include("Falta el token"));
+    language: text/javascript
+order: 11000
