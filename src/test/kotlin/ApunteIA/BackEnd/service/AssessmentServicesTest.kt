@@ -1,5 +1,6 @@
 package ApunteIA.BackEnd.service
 
+import ApunteIA.BackEnd.ai.AiClient
 import ApunteIA.BackEnd.dto.assessment.AssessmentResponse
 import ApunteIA.BackEnd.dto.assessment.CreateAssessmentRequest
 import ApunteIA.BackEnd.dto.assessment.CreateQuestionRequest
@@ -38,9 +39,17 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import ApunteIA.BackEnd.ai.AssessmentQuestionParser
+import org.springframework.test.context.bean.override.mockito.MockitoBean
 
 @DataJpaTest
-@Import(AssessmentServiceImpl::class, AttemptServiceImpl::class, AssessmentMapper::class, AttemptMapper::class)
+@Import(
+    AssessmentServiceImpl::class,
+    AttemptServiceImpl::class,
+    AssessmentMapper::class,
+    AttemptMapper::class,
+    AssessmentQuestionParser::class,
+)
 class AssessmentServicesTest @Autowired constructor(
     private val assessments: AssessmentService,
     private val attempts: AttemptService,
@@ -52,6 +61,9 @@ class AssessmentServicesTest @Autowired constructor(
     private val attemptRepository: AssessmentAttemptRepository,
     private val entityManager: EntityManager,
 ) {
+    @MockitoBean
+    private lateinit var aiClient: AiClient
+
     private lateinit var user: User
     private lateinit var otherUser: User
     private lateinit var course: Course
@@ -233,4 +245,5 @@ class AssessmentServicesTest @Autowired constructor(
         assertThrows<NotFoundException> { attempts.findById(missingId) }
         assertThrows<NotFoundException> { attempts.findByUser(missingId) }
     }
+
 }
