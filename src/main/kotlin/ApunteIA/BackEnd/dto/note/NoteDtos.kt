@@ -38,6 +38,9 @@ data class UpdateNoteRequest(
     @field:NotNull(message = "El curso es obligatorio")
     @field:Positive(message = "El id del curso debe ser positivo")
     val courseId: Long? = null,
+
+    /** Resumen revisado por el estudiante. Opcional: si no se envía, se conserva el actual. */
+    val summary: String? = null,
 )
 
 data class UpdateNoteStatusRequest(

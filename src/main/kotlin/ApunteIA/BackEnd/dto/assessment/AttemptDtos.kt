@@ -22,6 +22,8 @@ data class AttemptAnswerResponse(
     val questionIndex: Int,
     val selectedOptionIndex: Int?,
     val correct: Boolean,
+    /** Opción correcta de la pregunta. Solo se envía cuando el intento ya fue entregado (null mientras está en progreso). */
+    val correctOptionIndex: Int? = null,
 )
 
 data class AttemptResponse(

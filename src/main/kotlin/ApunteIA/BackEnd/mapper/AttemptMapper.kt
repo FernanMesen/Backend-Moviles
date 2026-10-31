@@ -24,6 +24,11 @@ class AttemptMapper {
                 questionIndex = it.questionIndex,
                 selectedOptionIndex = it.selectedOptionIndex,
                 correct = it.correct,
+                correctOptionIndex = if (attempt.completed) {
+                    attempt.assessment.questions.getOrNull(it.questionIndex)?.correctOptionIndex
+                } else {
+                    null
+                },
             )
         },
     )

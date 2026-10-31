@@ -58,6 +58,7 @@ class NoteServiceImpl(
         val (user, course) = findRelations(request.userId, request.courseId)
         note.title = request.title.trim()
         note.content = request.content.trim()
+        request.summary?.let { note.summary = it.trim().ifBlank { null } }
         note.user = user
         note.course = course
         return noteMapper.toResponse(noteRepository.saveAndFlush(note))
