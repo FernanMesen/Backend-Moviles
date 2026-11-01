@@ -65,8 +65,8 @@ class NoteController(private val noteService: NoteService) {
 
     /** POST /notes/{id}/process â†’ 200 | 404 | 409 | 502 */
     @PostMapping("/{id}/process")
-    fun processWithAi(@PathVariable id: Long): ResponseEntity<NoteResponse> =
-        ResponseEntity.ok(noteService.processWithAi(id))
+    fun processWithAi(@PathVariable id: Long, @RequestParam(required = false) language: String?): ResponseEntity<NoteResponse> =
+        ResponseEntity.ok(noteService.processWithAi(id, language))
 
     /** DELETE /notes/{id} → 204 | 404 */
     @DeleteMapping("/{id}")

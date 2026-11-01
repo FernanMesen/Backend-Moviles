@@ -1,6 +1,7 @@
 package ApunteIA.BackEnd.service.impl
 
 import ApunteIA.BackEnd.ai.AiClient
+import ApunteIA.BackEnd.ai.AiLanguage
 import ApunteIA.BackEnd.ai.AssessmentPrompt
 import ApunteIA.BackEnd.ai.AssessmentQuestionParser
 import ApunteIA.BackEnd.dto.assessment.AssessmentResponse
@@ -76,9 +77,10 @@ class AssessmentServiceImpl(
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     override fun generateFromNote(noteId: Long, creatorId: Long, request: GenerateAssessmentRequest): AssessmentResponse {
         val questionCount = requireNotNull(request.questionCount) { "La cantidad de preguntas es obligatoria" }
+        val language = AiLanguage.resolve(request.language)
         val source = transactions.execute { loadSource(noteId) }!!
         val aiResponse = aiClient.complete(
-            AssessmentPrompt.system(questionCount, request.difficulty),
+            AssessmentPrompt.system(questionCount, request.difficulty, language),
             AssessmentPrompt.user(source.noteTitle, source.content),
         )
         val questions = questionParser.parse(aiResponse, questionCount)

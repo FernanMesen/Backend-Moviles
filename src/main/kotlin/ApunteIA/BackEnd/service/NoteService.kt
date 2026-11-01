@@ -10,7 +10,7 @@ interface NoteService {
     fun findById(id: Long): NoteResponse
     fun create(request: CreateNoteRequest): NoteResponse
     fun update(id: Long, request: UpdateNoteRequest): NoteResponse
-    fun processWithAi(id: Long): NoteResponse
+    fun processWithAi(id: Long, language: String? = null): NoteResponse
     fun updateStatus(id: Long, status: ProcessingStatus): NoteResponse
     fun delete(id: Long)
 }

@@ -76,4 +76,6 @@ data class GenerateAssessmentRequest(
     val questionCount: Int? = null,
 
     val difficulty: AssessmentDifficulty = AssessmentDifficulty.MEDIUM,
+
+    val language: String? = null,
 )
