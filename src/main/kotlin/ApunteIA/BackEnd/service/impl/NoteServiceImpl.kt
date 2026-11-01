@@ -1,6 +1,7 @@
 package ApunteIA.BackEnd.service.impl
 
 import ApunteIA.BackEnd.ai.AiClient
+import ApunteIA.BackEnd.ai.AiLanguage
 import ApunteIA.BackEnd.dto.note.NoteResponse
 import ApunteIA.BackEnd.dto.note.CreateNoteRequest
 import ApunteIA.BackEnd.dto.note.UpdateNoteRequest
@@ -66,10 +67,11 @@ class NoteServiceImpl(
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     override fun processWithAi(id: Long, language: String?): NoteResponse {
+        val resolvedLanguage = AiLanguage.resolve(language)
         val content = noteProcessingStateService.begin(id)
         return try {
             val summary = aiClient.complete(
-                SYSTEM_PROMPT,
+                "$SYSTEM_PROMPT\n${resolvedLanguage.instruction}",
                 "Título: ${content.title}\n\n${content.content}",
             )
             noteProcessingStateService.complete(id, summary)
@@ -113,8 +115,8 @@ class NoteServiceImpl(
                 .orElseThrow { NotFoundException("No existe un curso con id $courseId") }
 
     private companion object {
-        const val SYSTEM_PROMPT = """Sos un asistente de estudio. Resumí el apunte del estudiante en español,
-en máximo 8 viñetas claras, con los conceptos clave y sin inventar información."""
+        const val SYSTEM_PROMPT = """Sos un asistente de estudio. Resume el apunte del estudiante en máximo 8 viñetas claras,
+con los conceptos clave y sin inventar información."""
     }
 }
 
