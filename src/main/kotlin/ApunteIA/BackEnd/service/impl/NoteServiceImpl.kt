@@ -1,4 +1,4 @@
-﻿package ApunteIA.BackEnd.service.impl
+package ApunteIA.BackEnd.service.impl
 
 import ApunteIA.BackEnd.ai.AiClient
 import ApunteIA.BackEnd.dto.note.NoteResponse
@@ -65,7 +65,7 @@ class NoteServiceImpl(
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    override fun processWithAi(id: Long): NoteResponse {
+    override fun processWithAi(id: Long, language: String?): NoteResponse {
         val content = noteProcessingStateService.begin(id)
         return try {
             val summary = aiClient.complete(
@@ -117,3 +117,4 @@ class NoteServiceImpl(
 en máximo 8 viñetas claras, con los conceptos clave y sin inventar información."""
     }
 }
+

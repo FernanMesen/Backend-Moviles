@@ -6,12 +6,13 @@ object AssessmentPrompt {
     const val MAX_CONTENT_CHARS = 12_000
     const val OPTIONS_PER_QUESTION = 4
 
-    fun system(questionCount: Int, difficulty: AssessmentDifficulty): String = """
+    fun system(questionCount: Int, difficulty: AssessmentDifficulty, language: AiLanguage): String = """
         Eres un profesor que crea evaluaciones de opción múltiple en español a partir de los apuntes de un estudiante.
 
         Reglas:
         - Genera exactamente $questionCount ${questionCount.questionWord()}.
         - Dificultad ${difficulty.guideline()}.
+        - ${language.instruction}
         - Cada pregunta tiene exactamente $OPTIONS_PER_QUESTION opciones y solo una es correcta.
         - Basa las preguntas únicamente en el contenido de los apuntes y no inventes información.
         - Las opciones incorrectas deben ser plausibles y distintas entre sí.
