@@ -71,7 +71,7 @@ class NoteServiceImpl(
         val content = noteProcessingStateService.begin(id)
         return try {
             val summary = aiClient.complete(
-                "$SYSTEM_PROMPT\n${resolvedLanguage.instruction}",
+                systemPrompt(resolvedLanguage),
                 "Título: ${content.title}\n\n${content.content}",
             )
             noteProcessingStateService.complete(id, summary)
@@ -114,9 +114,15 @@ class NoteServiceImpl(
             courseRepository.findById(requireNotNull(courseId))
                 .orElseThrow { NotFoundException("No existe un curso con id $courseId") }
 
-    private companion object {
-        const val SYSTEM_PROMPT = """Sos un asistente de estudio. Resume el apunte del estudiante en máximo 8 viñetas claras,
-con los conceptos clave y sin inventar información."""
+    internal companion object {
+        const val SYSTEM_PROMPT = """You are a study assistant. Summarize the source notes in at most 8 clear bullet points,
+covering key concepts while preserving meaning. Do not add facts that are absent from the notes."""
+
+        fun systemPrompt(language: AiLanguage): String = """${language.instruction}
+
+$SYSTEM_PROMPT
+
+FINAL OUTPUT CONSTRAINT: ${language.instruction}"""
     }
 }
 
