@@ -9,4 +9,4 @@ scripts:
       pm.test("Status code es 200", () => pm.response.to.have.status(200));
       pm.test("Sigue en progreso", () => pm.expect(pm.response.json().status).to.eql("IN_PROGRESS"));
     language: text/javascript
-order: 24000
+order: 25000

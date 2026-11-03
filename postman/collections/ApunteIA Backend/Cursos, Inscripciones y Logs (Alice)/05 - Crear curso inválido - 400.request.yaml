@@ -7,6 +7,10 @@ headers:
 body:
   type: json
   content: '{"code":"","name":""}'
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminToken}}"
 scripts:
   - type: afterResponse
     code: |-

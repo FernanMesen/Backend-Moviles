@@ -3,6 +3,10 @@ url: "{{baseUrl}}/enrollments/{{academicEnrollmentId}}"
 method: DELETE
 headers:
   Accept: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminToken}}"
 scripts:
   - type: afterResponse
     code: |-

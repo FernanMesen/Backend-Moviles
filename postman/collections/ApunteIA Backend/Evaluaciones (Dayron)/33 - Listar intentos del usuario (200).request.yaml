@@ -12,4 +12,4 @@ scripts:
       pm.test("Incluye los dos intentos creados", () => { const ids = attempts.map(a => a.id); pm.expect(ids).to.include(Number(pm.collectionVariables.get("evalAttemptId"))); pm.expect(ids).to.include(Number(pm.collectionVariables.get("evalSecondAttemptId"))); });
       pm.test("El más reciente va primero", () => pm.expect(attempts[0].id).to.eql(Number(pm.collectionVariables.get("evalSecondAttemptId"))));
     language: text/javascript
-order: 33000
+order: 34000

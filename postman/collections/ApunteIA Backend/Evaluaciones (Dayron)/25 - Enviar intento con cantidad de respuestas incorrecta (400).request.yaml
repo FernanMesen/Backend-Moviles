@@ -16,4 +16,4 @@ scripts:
       pm.test("Status code es 400", () => pm.response.to.have.status(400));
       pm.test("El mensaje menciona: Se esperaban 2 respuestas", () => pm.expect(pm.response.json().message).to.include("Se esperaban 2 respuestas"));
     language: text/javascript
-order: 25000
+order: 26000

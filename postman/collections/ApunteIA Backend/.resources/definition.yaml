@@ -27,8 +27,23 @@ variables:
   aiUserId: ""
   aiCourseId: ""
   aiNoteId: ""
+  demoUserId: ""
+  evalUserId: ""
+  evalOtherUserId: ""
+  evalSeedCourseId: ""
+  evalRunId: ""
+  evalCourseCode: ""
+  evalCourseId: ""
+  evalAssessmentId: ""
+  evalAttemptId: ""
+  evalSecondAttemptId: ""
+  genUserId: ""
+  genCourseId: ""
+  genNoteId: ""
+  genAssessmentId: ""
+  genQuizTitle: ""
 auth:
-  - id: 42a3ae81-4dd2-4072-aee1-cf7e5e7defff
+  - id: fea51df4-a4d8-4908-ba7c-13a6355abfa1
     type: bearer
     name: bearer auth
     credentials:

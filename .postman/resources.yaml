@@ -6,7 +6,7 @@ workspace:
 
 cloudResources:
   collections:
-    ../postman/collections/ApunteIA Backend: fa4450df-a901-4eff-a934-887ac569fefc
+    ../postman/collections/ApunteIA Backend: 014b19fc-f59e-4c96-9870-8f691708f91c
 
 # All resources in the `postman/` folder are automatically registered in Local View.
 # Point to additional files outside the `postman/` folder to register them individually. Example:

@@ -12,11 +12,13 @@ class CourseMapper {
         code = course.code,
         name = course.name,
         description = course.description,
+        syllabus = course.syllabus,
     )
 
     fun toEntity(request: CreateCourseRequest) = Course(
         code = request.code.trim(),
         name = request.name.trim(),
         description = request.description?.trim(),
+        syllabus = request.syllabus?.trim()?.ifBlank { null },
     )
 }

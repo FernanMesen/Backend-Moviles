@@ -9,4 +9,4 @@ scripts:
       pm.test("Status code es 404", () => pm.response.to.have.status(404));
       pm.test("El mensaje menciona: No existe una evaluación con id", () => pm.expect(pm.response.json().message).to.include("No existe una evaluación con id"));
     language: text/javascript
-order: 9000
+order: 10000

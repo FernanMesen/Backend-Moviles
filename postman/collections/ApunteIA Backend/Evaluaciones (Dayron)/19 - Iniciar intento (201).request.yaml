@@ -19,4 +19,4 @@ scripts:
       pm.test("Inicia en progreso y sin puntaje", () => { pm.expect(attempt.status).to.eql("IN_PROGRESS"); pm.expect(attempt.score).to.eql(null); pm.expect(attempt.completedAt).to.eql(null); pm.expect(attempt.answers).to.eql([]); });
       pm.collectionVariables.set("evalAttemptId", attempt.id);
     language: text/javascript
-order: 19000
+order: 20000

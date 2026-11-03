@@ -7,4 +7,4 @@ scripts:
   - type: afterResponse
     code: pm.test("Status code es 405", () => pm.response.to.have.status(405));
     language: text/javascript
-order: 35000
+order: 36000

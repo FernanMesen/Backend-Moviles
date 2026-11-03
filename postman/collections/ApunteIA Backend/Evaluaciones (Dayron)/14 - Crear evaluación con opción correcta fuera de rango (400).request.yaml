@@ -23,4 +23,4 @@ scripts:
       pm.test("Status code es 400", () => pm.response.to.have.status(400));
       pm.test("El mensaje menciona: fuera de rango", () => pm.expect(pm.response.json().message).to.include("fuera de rango"));
     language: text/javascript
-order: 14000
+order: 15000

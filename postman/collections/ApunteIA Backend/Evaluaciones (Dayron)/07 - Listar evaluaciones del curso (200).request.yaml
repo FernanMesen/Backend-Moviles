@@ -10,4 +10,4 @@ scripts:
       const list = pm.response.json();
       pm.test("Contiene solo la evaluación creada", () => { pm.expect(list.length).to.eql(1); pm.expect(list[0].id).to.eql(Number(pm.collectionVariables.get("evalAssessmentId"))); });
     language: text/javascript
-order: 7000
+order: 8000

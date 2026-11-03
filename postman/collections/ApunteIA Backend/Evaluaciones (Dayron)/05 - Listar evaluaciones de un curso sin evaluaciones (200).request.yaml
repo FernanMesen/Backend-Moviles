@@ -9,4 +9,4 @@ scripts:
       pm.test("Status code es 200", () => pm.response.to.have.status(200));
       pm.test("La lista está vacía", () => pm.expect(pm.response.json()).to.eql([]));
     language: text/javascript
-order: 5000
+order: 6000

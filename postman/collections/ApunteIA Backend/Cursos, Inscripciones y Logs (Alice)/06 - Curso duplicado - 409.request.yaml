@@ -12,6 +12,10 @@ body:
       "name": "Curso Postman Alice",
       "description": "Datos temporales del issue #33"
     }
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminToken}}"
 scripts:
   - type: afterResponse
     code: |-

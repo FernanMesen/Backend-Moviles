@@ -16,4 +16,4 @@ scripts:
       pm.test("Status code es 409", () => pm.response.to.have.status(409));
       pm.test("El mensaje menciona: ya fue completado", () => pm.expect(pm.response.json().message).to.include("ya fue completado"));
     language: text/javascript
-order: 30000
+order: 31000

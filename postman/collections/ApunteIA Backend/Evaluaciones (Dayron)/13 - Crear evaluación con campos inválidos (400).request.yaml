@@ -18,4 +18,4 @@ scripts:
       pm.test("Reporta error en title", () => pm.expect(pm.response.json().fieldErrors).to.have.property("title"));
       pm.test("Reporta error en questions", () => pm.expect(pm.response.json().fieldErrors).to.have.property("questions"));
     language: text/javascript
-order: 13000
+order: 14000

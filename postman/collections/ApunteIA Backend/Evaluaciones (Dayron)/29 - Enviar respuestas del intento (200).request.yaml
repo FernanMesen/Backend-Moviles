@@ -19,4 +19,4 @@ scripts:
       pm.test("Califica cada respuesta", () => pm.expect(attempt.answers.map(a => a.correct)).to.eql([true, false]));
       pm.test("Duración no negativa", () => pm.expect(attempt.durationSeconds).to.be.at.least(0));
     language: text/javascript
-order: 29000
+order: 30000

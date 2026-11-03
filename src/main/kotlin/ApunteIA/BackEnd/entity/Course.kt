@@ -20,6 +20,10 @@ class Course(
     @Column(name = "description", length = 1000)
     var description: String? = null,
 
+    /** Plan de estudios: un tema por línea. */
+    @Column(name = "syllabus", length = 5000)
+    var syllabus: String? = null,
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,

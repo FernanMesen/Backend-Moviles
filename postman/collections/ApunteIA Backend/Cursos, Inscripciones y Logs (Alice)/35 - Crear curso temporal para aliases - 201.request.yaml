@@ -7,6 +7,10 @@ headers:
 body:
   type: json
   content: '{"code":"{{academicCourseCode}}","name":"Curso temporal aliases Alice","description":"Cleanup al finalizar issue 33"}'
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminToken}}"
 scripts:
   - type: beforeRequest
     code: pm.collectionVariables.set('academicCourseCode', 'ALIAS_' + pm.variables.replaceIn('{{$guid}}').replace(/-/g, ''));

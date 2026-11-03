@@ -19,7 +19,8 @@ import org.springframework.security.web.servlet.util.matcher.PathPatternRequestM
  * Seguridad de la API con JWT (módulo "Security with JWT").
  *
  *  Públicas:      POST /auth/login, POST /auth/register, /h2-console (solo desarrollo), /error
- *  Solo ADMIN:    PATCH /users/{id}/status, GET /security-logs y GET /security-logs/{id}
+ *  Solo ADMIN:    PATCH /users/{id}/status, GET /security-logs, POST /courses,
+ *                 PUT /courses/{id}, DELETE /courses/{id} y DELETE /enrollments/{id}
  *  Resto:         requiere `Authorization: Bearer <token>` de cualquier usuario ACTIVE
  *
  * Es stateless: no hay sesión ni cookies, así que CSRF no aplica y se desactiva.
@@ -51,6 +52,10 @@ auth
 .requestMatchers(path.matcher("/error")).permitAll()
 .requestMatchers(path.matcher(HttpMethod.PATCH, "/users/*/status")).hasRole(Role.ADMIN)
 .requestMatchers(path.matcher("/security-logs/**")).hasRole(Role.ADMIN)
+.requestMatchers(path.matcher(HttpMethod.POST, "/courses")).hasRole(Role.ADMIN)
+.requestMatchers(path.matcher(HttpMethod.PUT, "/courses/*")).hasRole(Role.ADMIN)
+.requestMatchers(path.matcher(HttpMethod.DELETE, "/courses/*")).hasRole(Role.ADMIN)
+.requestMatchers(path.matcher(HttpMethod.DELETE, "/enrollments/*")).hasRole(Role.ADMIN)
 .anyRequest().authenticated()
 }
 .exceptionHandling {

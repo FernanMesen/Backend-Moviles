@@ -44,6 +44,7 @@ class CourseServiceImpl(
         course.code = code
         course.name = request.name.trim()
         course.description = request.description?.trim()
+        request.syllabus?.let { course.syllabus = it.trim().ifBlank { null } }
         return courseMapper.toResponse(courseRepository.saveAndFlush(course))
     }
 

@@ -24,4 +24,4 @@ scripts:
       pm.test("Status code es 404", () => pm.response.to.have.status(404));
       pm.test("El mensaje menciona: No existe un usuario con id", () => pm.expect(pm.response.json().message).to.include("No existe un usuario con id"));
     language: text/javascript
-order: 17000
+order: 18000

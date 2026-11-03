@@ -1,5 +1,4 @@
 $kind: http-request
-description: "Llama al proveedor de IA. Necesita AI_API_KEY en el backend."
 url: "{{baseUrl}}/notes/{{genNoteId}}/assessments/generate"
 method: POST
 headers:

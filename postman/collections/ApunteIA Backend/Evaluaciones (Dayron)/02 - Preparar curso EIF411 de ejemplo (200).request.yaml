@@ -11,4 +11,4 @@ scripts:
       pm.test("Existe el curso sembrado EIF411", () => pm.expect(seedCourse).to.exist);
       pm.collectionVariables.set("evalSeedCourseId", seedCourse.id);
     language: text/javascript
-order: 2000
+order: 3000

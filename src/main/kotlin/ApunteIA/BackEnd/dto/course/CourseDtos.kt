@@ -14,6 +14,9 @@ data class CreateCourseRequest(
 
     @field:Size(max = 1000, message = "La descripción del curso no puede tener más de 1000 caracteres")
     val description: String? = null,
+
+    @field:Size(max = 5000, message = "El plan de estudios no puede tener más de 5000 caracteres")
+    val syllabus: String? = null,
 )
 
 data class UpdateCourseRequest(
@@ -27,6 +30,10 @@ data class UpdateCourseRequest(
 
     @field:Size(max = 1000, message = "La descripción del curso no puede tener más de 1000 caracteres")
     val description: String? = null,
+
+    /** Si se omite, se conserva el plan actual; si se envía vacío, se borra. */
+    @field:Size(max = 5000, message = "El plan de estudios no puede tener más de 5000 caracteres")
+    val syllabus: String? = null,
 )
 
 data class CourseResponse(
@@ -34,4 +41,5 @@ data class CourseResponse(
     val code: String,
     val name: String,
     val description: String?,
+    val syllabus: String? = null,
 )

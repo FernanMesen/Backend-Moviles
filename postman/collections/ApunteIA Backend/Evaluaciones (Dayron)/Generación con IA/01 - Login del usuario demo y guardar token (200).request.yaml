@@ -1,5 +1,4 @@
 $kind: http-request
-description: "Deja listo {{token}} y el id del usuario dueño del token, que será el creador del quiz generado."
 url: "{{baseUrl}}/auth/login"
 method: POST
 headers:

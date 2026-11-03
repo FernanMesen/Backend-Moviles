@@ -16,4 +16,4 @@ scripts:
       pm.test("Status code es 409", () => pm.response.to.have.status(409));
       pm.test("El mensaje menciona: ya tiene un intento en progreso", () => pm.expect(pm.response.json().message).to.include("ya tiene un intento en progreso"));
     language: text/javascript
-order: 20000
+order: 21000

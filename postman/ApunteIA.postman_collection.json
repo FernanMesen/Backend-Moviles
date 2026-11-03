@@ -2858,6 +2858,7 @@
         {
           "name": "03 - Crear curso válido - 201",
           "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
             "method": "POST",
             "header": [
               {
@@ -2889,7 +2890,7 @@
                   "pm.test('Status 201', () => pm.response.to.have.status(201));",
                   "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
                   "const body = pm.response.json();",
-                  "pm.test('DTO de curso', () => { pm.expect(body).to.have.all.keys('id', 'code', 'name', 'description'); pm.expect(body.id).to.be.a('number').and.above(0); pm.expect(body.code).to.be.a('string'); pm.expect(body.name).to.be.a('string'); pm.expect(body.description === null || typeof body.description === 'string').to.eql(true); });",
+                  "pm.test('DTO de curso', () => { pm.expect(body).to.have.all.keys('id', 'code', 'name', 'description', 'syllabus'); pm.expect(body.id).to.be.a('number').and.above(0); pm.expect(body.code).to.be.a('string'); pm.expect(body.name).to.be.a('string'); pm.expect(body.description === null || typeof body.description === 'string').to.eql(true); });",
                   "pm.test('Código dinámico y campos correctos; guardar ID', () => { pm.expect(body.code).to.eql(pm.collectionVariables.get('academicCourseCode')); pm.expect(body.name).to.eql('Curso Postman Alice'); pm.expect(body.description).to.eql('Datos temporales del issue #33'); pm.expect(Number.isInteger(body.id) && body.id > 0).to.eql(true); pm.collectionVariables.set('academicCourseId', body.id); });",
                   "pm.test('Location apunta al curso creado', () => pm.expect(pm.response.headers.get('Location')).to.match(new RegExp('/courses/' + body.id + '$')));"
                 ]
@@ -2918,7 +2919,7 @@
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
                   "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
                   "const body = pm.response.json();",
-                  "pm.test('DTO de curso', () => { pm.expect(body).to.have.all.keys('id', 'code', 'name', 'description'); pm.expect(body.id).to.be.a('number').and.above(0); pm.expect(body.code).to.be.a('string'); pm.expect(body.name).to.be.a('string'); pm.expect(body.description === null || typeof body.description === 'string').to.eql(true); });",
+                  "pm.test('DTO de curso', () => { pm.expect(body).to.have.all.keys('id', 'code', 'name', 'description', 'syllabus'); pm.expect(body.id).to.be.a('number').and.above(0); pm.expect(body.code).to.be.a('string'); pm.expect(body.name).to.be.a('string'); pm.expect(body.description === null || typeof body.description === 'string').to.eql(true); });",
                   "pm.test('Curso creado coincide con las variables', () => { pm.expect(body.id).to.eql(Number(pm.collectionVariables.get('academicCourseId'))); pm.expect(body.code).to.eql(pm.collectionVariables.get('academicCourseCode')); });"
                 ]
               }
@@ -2928,6 +2929,7 @@
         {
           "name": "05 - Crear curso inválido - 400",
           "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
             "method": "POST",
             "header": [
               {
@@ -2969,6 +2971,7 @@
         {
           "name": "06 - Curso duplicado - 409",
           "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
             "method": "POST",
             "header": [
               {
@@ -3009,6 +3012,7 @@
         {
           "name": "07 - Actualizar curso - 200",
           "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
             "method": "PUT",
             "header": [
               {
@@ -3040,7 +3044,7 @@
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
                   "pm.test('Respuesta JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
                   "const body = pm.response.json();",
-                  "pm.test('DTO de curso', () => { pm.expect(body).to.have.all.keys('id', 'code', 'name', 'description'); pm.expect(body.id).to.be.a('number').and.above(0); pm.expect(body.code).to.be.a('string'); pm.expect(body.name).to.be.a('string'); pm.expect(body.description === null || typeof body.description === 'string').to.eql(true); });",
+                  "pm.test('DTO de curso', () => { pm.expect(body).to.have.all.keys('id', 'code', 'name', 'description', 'syllabus'); pm.expect(body.id).to.be.a('number').and.above(0); pm.expect(body.code).to.be.a('string'); pm.expect(body.name).to.be.a('string'); pm.expect(body.description === null || typeof body.description === 'string').to.eql(true); });",
                   "pm.test('Curso creado coincide con las variables', () => { pm.expect(body.id).to.eql(Number(pm.collectionVariables.get('academicCourseId'))); pm.expect(body.code).to.eql(pm.collectionVariables.get('academicCourseCode')); });",
                   "pm.test('Nombre y descripción actualizados', () => { pm.expect(body.name).to.eql('Curso Postman actualizado'); pm.expect(body.description).to.eql('Descripción actualizada por Alice'); });"
                 ]
@@ -3382,6 +3386,7 @@
         {
           "name": "18 - Rechazar borrado de curso con inscripción - 409",
           "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
             "method": "DELETE",
             "header": [
               {
@@ -3409,6 +3414,7 @@
         {
           "name": "19 - Eliminar inscripción - 204",
           "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
             "method": "DELETE",
             "header": [
               {
@@ -3461,6 +3467,7 @@
         {
           "name": "21 - Eliminar curso sin inscripción - 204",
           "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
             "method": "DELETE",
             "header": [
               {
@@ -3755,6 +3762,7 @@
         {
           "name": "29 - Curso con Content-Type incorrecto - 415",
           "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
             "method": "POST",
             "header": [
               {
@@ -4003,6 +4011,7 @@
         {
           "name": "35 - Crear curso temporal para aliases - 201",
           "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
             "method": "POST",
             "header": [
               {
@@ -4163,6 +4172,7 @@
         {
           "name": "39 - Cleanup inscripcion de aliases - 204",
           "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
             "method": "DELETE",
             "header": [
               {
@@ -4189,6 +4199,7 @@
         {
           "name": "40 - Cleanup curso temporal de aliases - 204",
           "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
             "method": "DELETE",
             "header": [
               {
@@ -4317,6 +4328,7 @@
         {
           "name": "04 - Crear curso temporal (201)",
           "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
             "method": "POST",
             "header": [
               {

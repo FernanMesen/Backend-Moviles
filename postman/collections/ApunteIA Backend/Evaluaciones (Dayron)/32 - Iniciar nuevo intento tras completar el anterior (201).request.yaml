@@ -17,4 +17,4 @@ scripts:
       pm.test("Nuevo intento en progreso", () => pm.expect(pm.response.json().status).to.eql("IN_PROGRESS"));
       pm.collectionVariables.set("evalSecondAttemptId", pm.response.json().id);
     language: text/javascript
-order: 32000
+order: 33000

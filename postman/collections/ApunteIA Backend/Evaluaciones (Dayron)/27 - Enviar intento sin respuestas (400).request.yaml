@@ -13,4 +13,4 @@ scripts:
       pm.test("Status code es 400", () => pm.response.to.have.status(400));
       pm.test("Reporta error en answers", () => pm.expect(pm.response.json().fieldErrors).to.have.property("answers"));
     language: text/javascript
-order: 27000
+order: 28000

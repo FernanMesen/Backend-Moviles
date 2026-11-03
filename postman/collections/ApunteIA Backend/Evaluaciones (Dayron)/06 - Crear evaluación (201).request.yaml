@@ -38,4 +38,4 @@ scripts:
       pm.test("No expone la opción correcta", () => assessment.questions.forEach(q => pm.expect(q).to.not.have.property("correctOptionIndex")));
       pm.collectionVariables.set("evalAssessmentId", assessment.id);
     language: text/javascript
-order: 6000
+order: 7000

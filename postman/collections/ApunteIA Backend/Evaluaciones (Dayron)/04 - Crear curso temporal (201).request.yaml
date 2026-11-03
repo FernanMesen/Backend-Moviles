@@ -11,6 +11,10 @@ body:
       "code": "{{evalCourseCode}}",
       "name": "Curso temporal de evaluaciones"
     }
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminToken}}"
 scripts:
   - type: beforeRequest
     code: |-
@@ -23,4 +27,4 @@ scripts:
       pm.test("Status code es 201", () => pm.response.to.have.status(201));
       pm.collectionVariables.set("evalCourseId", pm.response.json().id);
     language: text/javascript
-order: 4000
+order: 5000

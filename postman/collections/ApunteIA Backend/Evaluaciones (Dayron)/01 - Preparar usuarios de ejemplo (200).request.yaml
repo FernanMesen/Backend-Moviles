@@ -14,4 +14,4 @@ scripts:
       pm.collectionVariables.set("evalUserId", demo.id);
       pm.collectionVariables.set("evalOtherUserId", profe.id);
     language: text/javascript
-order: 1000
+order: 2000

@@ -13,4 +13,4 @@ scripts:
       pm.test("Status code es 400", () => pm.response.to.have.status(400));
       pm.test("Reporta error en userId", () => pm.expect(pm.response.json().fieldErrors).to.have.property("userId"));
     language: text/javascript
-order: 21000
+order: 22000
