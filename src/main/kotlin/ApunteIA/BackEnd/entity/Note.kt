@@ -13,6 +13,7 @@ import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import org.hibernate.annotations.CreationTimestamp
 import org.hibernate.annotations.UpdateTimestamp
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 /** Nota de estudio generada a partir de apuntes escaneados. */
@@ -51,6 +52,10 @@ class Note(
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime? = null
+
+    /** Fecha en que se tomó la nota (la clase). Opcional: las notas viejas no la tienen. */
+    @Column(name = "note_date")
+    var noteDate: LocalDate? = null
 
     override fun toString() = "Note(id=$id, title=$title, processingStatus=$processingStatus)"
 }

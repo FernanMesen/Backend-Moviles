@@ -60,6 +60,7 @@ class NoteServiceImpl(
         note.title = request.title.trim()
         note.content = request.content.trim()
         request.summary?.let { note.summary = it.trim().ifBlank { null } }
+        request.noteDate?.let { note.noteDate = it }
         note.user = user
         note.course = course
         return noteMapper.toResponse(noteRepository.saveAndFlush(note))

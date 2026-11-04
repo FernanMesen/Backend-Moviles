@@ -21,6 +21,7 @@ class NoteMapper {
         processingStatus = note.processingStatus,
         createdAt = note.createdAt,
         updatedAt = note.updatedAt,
+        noteDate = note.noteDate,
     )
 
     fun toEntity(request: CreateNoteRequest, user: User, course: Course) = Note(
@@ -28,5 +29,5 @@ class NoteMapper {
         content = request.content.trim(),
         user = user,
         course = course,
-    )
+    ).apply { noteDate = request.noteDate }
 }

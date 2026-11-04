@@ -22,9 +22,12 @@ import org.springframework.http.MediaType
 import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.test.context.TestPropertySource
 import org.springframework.test.context.bean.override.mockito.MockitoBean
+import org.hamcrest.Matchers.nullValue
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.post
+import org.springframework.test.web.servlet.put
+import java.time.LocalDate
 import java.util.UUID
 
 @SpringBootTest
@@ -100,6 +103,91 @@ class NoteAiProcessingControllerTest @Autowired constructor(
 
         verifyNoInteractions(aiClient)
         assertStatus(note.id!!, ProcessingStatus.FAILED)
+    }
+
+    @Test
+    fun `crear una nota con noteDate devuelve la fecha persistida`() {
+        val noteDate = "2026-10-20"
+        mockMvc.post("/notes") {
+            contentType = MediaType.APPLICATION_JSON
+            content = """
+                {
+                  "title": "Nota con fecha",
+                  "content": "Contenido de la nota con fecha.",
+                  "userId": ${user.id},
+                  "courseId": ${course.id},
+                  "noteDate": "$noteDate"
+                }
+            """.trimIndent()
+        }.andExpect {
+            status { isCreated() }
+            jsonPath("$.noteDate") { value(noteDate) }
+        }
+    }
+
+    @Test
+    fun `crear una nota sin noteDate responde con noteDate nulo`() {
+        mockMvc.post("/notes") {
+            contentType = MediaType.APPLICATION_JSON
+            content = """
+                {
+                  "title": "Nota sin fecha",
+                  "content": "Contenido de la nota sin fecha.",
+                  "userId": ${user.id},
+                  "courseId": ${course.id}
+                }
+            """.trimIndent()
+        }.andExpect {
+            status { isCreated() }
+            jsonPath("$.noteDate") { value(nullValue()) }
+        }
+    }
+
+    @Test
+    fun `crear una nota con fecha futura devuelve 400`() {
+        val futureDate = LocalDate.now().plusDays(1)
+        mockMvc.post("/notes") {
+            contentType = MediaType.APPLICATION_JSON
+            content = """
+                {
+                  "title": "Nota futura",
+                  "content": "Contenido de la nota futura.",
+                  "userId": ${user.id},
+                  "courseId": ${course.id},
+                  "noteDate": "$futureDate"
+                }
+            """.trimIndent()
+        }.andExpect {
+            status { isBadRequest() }
+            jsonPath("$.fieldErrors.noteDate") { value("La fecha de la nota no puede ser futura") }
+        }
+    }
+
+    @Test
+    fun `actualizar una nota sin noteDate conserva la fecha previa`() {
+        val note = noteRepository.saveAndFlush(
+            Note(
+                title = "Nota actualizable",
+                content = "Contenido previo",
+                user = user,
+                course = course,
+            ).apply { noteDate = LocalDate.of(2026, 10, 20) },
+        )
+
+        mockMvc.put("/notes/${note.id}") {
+            contentType = MediaType.APPLICATION_JSON
+            content = """
+                {
+                  "title": "Nota actualizada",
+                  "content": "Contenido actualizado",
+                  "userId": ${user.id},
+                  "courseId": ${course.id}
+                }
+            """.trimIndent()
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.noteDate") { value("2026-10-20") }
+        }
     }
 
     private fun createNote(status: ProcessingStatus = ProcessingStatus.PENDING) =
