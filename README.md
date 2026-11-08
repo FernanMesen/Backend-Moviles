@@ -292,7 +292,7 @@ gradlew.bat bootRun        # Windows
 - API: <http://localhost:8080>
 - Consola H2: <http://localhost:8080/h2-console> — JDBC URL `jdbc:h2:file:./data/apunteia`, usuario `sa`, sin contraseña.
 
-Para que recuperación envíe correos, configura `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_AUTH`, `SMTP_STARTTLS` y `MAIL_FROM`. Configura `PASSWORD_RESET_URL` con el deep link de la app que abre la pantalla de nueva contraseña (por defecto `apunteia://reset-password`).
+Para que recuperación envíe correos desde Render Free, configura `BREVO_API_KEY`, `BREVO_FROM_EMAIL` (remitente verificado en Brevo), opcionalmente `BREVO_FROM_NAME`, y `PASSWORD_RESET_URL` con el deep link de la app que abre la pantalla de nueva contraseña (por defecto `apunteia://reset-password`). El backend usa la API HTTPS transaccional de Brevo.
 
 Prueba rápida:
 

@@ -30,7 +30,7 @@ class UserController(
     private val accountExportRenderer: AccountExportRenderer,
 ) {
 
-    @GetMapping("/me/export")
+    @GetMapping("/me/export", produces = ["application/json", "application/pdf", "text/csv"])
     fun exportMyData(
         @AuthenticationPrincipal user: AuthenticatedUser,
         @RequestParam(defaultValue = "json") format: String,
@@ -39,6 +39,7 @@ class UserController(
         val (content, mediaType, extension) = accountExportRenderer.render(data, format)
         return ResponseEntity.ok()
             .contentType(mediaType)
+            .contentLength(content.size.toLong())
             .header("Content-Disposition", "attachment; filename=apunteia-datos.$extension")
             .body(ByteArrayResource(content))
     }

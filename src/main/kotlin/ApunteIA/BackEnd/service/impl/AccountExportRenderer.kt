@@ -22,7 +22,7 @@ class AccountExportRenderer(private val objectMapper: ObjectMapper) {
         }
 
     private fun csv(data: Map<String, Any?>): String = buildString {
-        appendLine("tipo,id,fecha,titulo,curso,detalle,resultado")
+        appendLine("Tipo;ID;Fecha;Título;Curso;Detalle;Resultado")
         val account = data["account"] as? Map<*, *> ?: emptyMap<Any?, Any?>()
         appendCsvRow("cuenta", account["id"], account["createdAt"], account["fullName"], "", account["email"], "")
 
@@ -46,7 +46,7 @@ class AccountExportRenderer(private val objectMapper: ObjectMapper) {
     }
 
     private fun StringBuilder.appendCsvRow(vararg cells: Any?) {
-        appendLine(cells.joinToString(",") { cell ->
+        appendLine(cells.joinToString(";") { cell ->
             val text = cell?.toString().orEmpty()
             "\"${text.replace("\"", "\"\"")}\""
         })
@@ -113,7 +113,7 @@ class AccountExportRenderer(private val objectMapper: ObjectMapper) {
                     stream.beginText()
                     stream.setFont(font, 10f)
                     stream.newLineAtOffset(48f, y)
-                    stream.showText(line.replace(Regex("[^\\u0020-\\u00FF]"), "?"))
+                    stream.showText(line.replace(Regex("[^\\u0020-\\u007E\\u00A0-\\u00FF]"), "?"))
                     stream.endText()
                     y -= 14f
                 }

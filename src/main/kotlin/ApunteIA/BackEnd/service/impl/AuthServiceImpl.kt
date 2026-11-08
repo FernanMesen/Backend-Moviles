@@ -27,8 +27,6 @@ import ApunteIA.BackEnd.service.SecurityLogService
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.mail.SimpleMailMessage
-import org.springframework.mail.javamail.JavaMailSender
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 import java.time.Instant
@@ -50,9 +48,8 @@ class AuthServiceImpl(
     private val userMapper: UserMapper,
     private val securityLogService: SecurityLogService,
     private val resetTokenRepository: PasswordResetTokenRepository,
-    private val mailSender: JavaMailSender,
+    private val brevoEmailService: BrevoEmailService,
     @param:Value("\${app.password-reset.url}") private val resetUrl: String,
-    @param:Value("\${app.mail.from}") private val mailFrom: String,
 ) : AuthService {
 
     @Transactional
@@ -141,13 +138,7 @@ class AuthServiceImpl(
             tokenHash = sha256(token),
             expiresAt = Instant.now().plusSeconds(30 * 60),
         ))
-        val message = SimpleMailMessage().apply {
-            from = mailFrom
-            setTo(user.email)
-            subject = "Recuperación de contraseña - ApunteIA"
-            text = "Usa este enlace para restablecer tu contraseña (vence en 30 minutos y solo puede usarse una vez):\n\n$resetUrl?token=$token\n\nSi no solicitaste este cambio, ignora este correo."
-        }
-        mailSender.send(message)
+        brevoEmailService.sendPasswordReset(user.email, "$resetUrl?token=$token")
     }
 
     @Transactional
