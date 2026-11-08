@@ -48,3 +48,13 @@ data class RegisterUserRequest(
     @field:Size(min = 6, max = 72, message = "La contraseña debe tener entre 6 y 72 caracteres")
     val password: String = "",
 )
+
+/** Entrada de PUT /auth/password para cambiar la clave de la cuenta autenticada. */
+data class ChangePasswordRequest(
+    @field:NotBlank(message = "La contraseña actual es obligatoria")
+    val currentPassword: String = "",
+
+    @field:NotBlank(message = "La nueva contraseña es obligatoria")
+    @field:Size(min = 6, max = 72, message = "La nueva contraseña debe tener entre 6 y 72 caracteres")
+    val newPassword: String = "",
+)

@@ -3,15 +3,19 @@ package ApunteIA.BackEnd.controller
 import ApunteIA.BackEnd.dto.auth.LoginRequest
 import ApunteIA.BackEnd.dto.auth.LoginResponse
 import ApunteIA.BackEnd.dto.auth.RegisterUserRequest
+import ApunteIA.BackEnd.dto.auth.ChangePasswordRequest
 import ApunteIA.BackEnd.dto.user.UserResponse
 import ApunteIA.BackEnd.service.AuthService
+import ApunteIA.BackEnd.security.AuthenticatedUser
 import jakarta.validation.Valid
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder
 
 @RestController
@@ -32,5 +36,15 @@ class AuthController(private val authService: AuthService) {
             .buildAndExpand(created.id)
             .toUri()
         return ResponseEntity.created(location).body(created)
+    }
+
+    /** PUT /auth/password â†’ 204 | 400. Requiere JWT; el ID siempre sale del token validado. */
+    @PutMapping("/password", consumes = [MediaType.APPLICATION_JSON_VALUE])
+    fun changePassword(
+        @AuthenticationPrincipal user: AuthenticatedUser,
+        @Valid @RequestBody request: ChangePasswordRequest,
+    ): ResponseEntity<Void> {
+        authService.changePassword(user.id, request)
+        return ResponseEntity.noContent().build()
     }
 }

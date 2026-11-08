@@ -12,9 +12,11 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.test.context.TestPropertySource
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.delete
 import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.patch
 import org.springframework.test.web.servlet.post
+import org.springframework.test.web.servlet.put
 import org.springframework.transaction.support.TransactionTemplate
 import java.time.Instant
 import java.util.UUID
@@ -163,5 +165,73 @@ class SecurityJwtTest @Autowired constructor(
     fun `admin sí puede consultar la auditoría`() {
         mockMvc.get("/security-logs") { header(HttpHeaders.AUTHORIZATION, "Bearer ${adminToken()}") }
             .andExpect { status { isOk() } }
+    }
+
+    @Test
+    fun `solo ADMIN administra cursos con syllabus e inscripciones`() {
+        val student = studentToken()
+        val code = "ADM-${UUID.randomUUID()}"
+
+        mockMvc.post("/courses") {
+            header(HttpHeaders.AUTHORIZATION, "Bearer $student")
+            contentType = MediaType.APPLICATION_JSON
+            content = """{"code":"$code","name":"Curso admin"}"""
+        }.andExpect { status { isForbidden() } }
+
+        val loginBody = mockMvc.post("/auth/login") {
+            contentType = MediaType.APPLICATION_JSON
+            content = """{"email":"admin@apunteia.com","password":"Admin123!"}"""
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.role") { value("ADMIN") }
+        }.andReturn().response.contentAsString
+        val admin = objectMapper.readTree(loginBody)["token"].asText()
+
+        val courseBody = mockMvc.post("/courses") {
+            header(HttpHeaders.AUTHORIZATION, "Bearer $admin")
+            contentType = MediaType.APPLICATION_JSON
+            content = """{"code":"$code","name":"Curso admin","syllabus":"Tema 1\nTema 2"}"""
+        }.andExpect {
+            status { isCreated() }
+            jsonPath("$.syllabus") { value("Tema 1\nTema 2") }
+        }.andReturn().response.contentAsString
+        val courseId = objectMapper.readTree(courseBody)["id"].asLong()
+
+        mockMvc.put("/courses/$courseId") {
+            header(HttpHeaders.AUTHORIZATION, "Bearer $admin")
+            contentType = MediaType.APPLICATION_JSON
+            content = """{"code":"$code","name":"Curso actualizado","syllabus":"Tema actualizado"}"""
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.syllabus") { value("Tema actualizado") }
+        }
+        mockMvc.put("/courses/$courseId") {
+            header(HttpHeaders.AUTHORIZATION, "Bearer $student")
+            contentType = MediaType.APPLICATION_JSON
+            content = """{"code":"$code","name":"Curso no autorizado"}"""
+        }.andExpect { status { isForbidden() } }
+
+        val enrollmentBody = mockMvc.post("/courses/$courseId/enrollments") {
+            header(HttpHeaders.AUTHORIZATION, "Bearer $admin")
+            contentType = MediaType.APPLICATION_JSON
+            content = """{"userId":${demoId()}}"""
+        }.andExpect { status { isCreated() } }.andReturn().response.contentAsString
+        val enrollmentId = objectMapper.readTree(enrollmentBody)["id"].asLong()
+        mockMvc.get("/enrollments?courseId=$courseId") {
+            header(HttpHeaders.AUTHORIZATION, "Bearer $admin")
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$[0].userFullName") { exists() }
+            jsonPath("$[0].userEmail") { exists() }
+        }
+        mockMvc.delete("/enrollments/$enrollmentId") {
+            header(HttpHeaders.AUTHORIZATION, "Bearer $student")
+        }.andExpect { status { isForbidden() } }
+        mockMvc.delete("/enrollments/$enrollmentId") {
+            header(HttpHeaders.AUTHORIZATION, "Bearer $admin")
+        }.andExpect { status { isNoContent() } }
+        mockMvc.delete("/courses/$courseId") {
+            header(HttpHeaders.AUTHORIZATION, "Bearer $admin")
+        }.andExpect { status { isNoContent() } }
     }
 }

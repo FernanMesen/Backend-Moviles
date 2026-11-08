@@ -13,6 +13,7 @@ interface SecurityLogService {
         const val LOGIN = "LOGIN"
         const val LOGIN_FAILED = "LOGIN_FAILED"
         const val USER_REGISTERED = "USER_REGISTERED"
+        const val PASSWORD_CHANGED = "PASSWORD_CHANGED"
         const val USER_STATUS_CHANGED = "USER_STATUS_CHANGED"
     }
 

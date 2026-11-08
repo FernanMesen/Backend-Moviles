@@ -3,12 +3,14 @@ package ApunteIA.BackEnd.service.impl
 import ApunteIA.BackEnd.dto.auth.LoginRequest
 import ApunteIA.BackEnd.dto.auth.LoginResponse
 import ApunteIA.BackEnd.dto.auth.RegisterUserRequest
+import ApunteIA.BackEnd.dto.auth.ChangePasswordRequest
 import ApunteIA.BackEnd.dto.user.UserResponse
 import ApunteIA.BackEnd.entity.AuthProvider
 import ApunteIA.BackEnd.entity.Privilege
 import ApunteIA.BackEnd.entity.Role
 import ApunteIA.BackEnd.entity.UserStatus
 import ApunteIA.BackEnd.exception.ConflictException
+import ApunteIA.BackEnd.exception.BadRequestException
 import ApunteIA.BackEnd.exception.ForbiddenException
 import ApunteIA.BackEnd.exception.UnauthorizedException
 import ApunteIA.BackEnd.mapper.UserMapper
@@ -92,6 +94,25 @@ class AuthServiceImpl(
         val saved = userRepository.saveAndFlush(user)
         securityLogService.record(SecurityLogService.USER_REGISTERED, saved.id, "Usuario registrado: $email")
         return userMapper.toResponse(saved)
+    }
+
+    @Transactional
+    override fun changePassword(userId: Long, request: ChangePasswordRequest) {
+        val user = userRepository.findById(userId).orElseThrow {
+            UnauthorizedException("La cuenta autenticada ya no existe")
+        }
+        val currentHash = user.passwordHash
+        if (user.authProvider != AuthProvider.LOCAL || currentHash == null) {
+            throw BadRequestException("Esta cuenta no tiene una contraseña local para cambiar")
+        }
+        if (!passwordEncoder.matches(request.currentPassword, currentHash)) {
+            throw BadRequestException("La contraseña actual es incorrecta")
+        }
+        if (passwordEncoder.matches(request.newPassword, currentHash)) {
+            throw BadRequestException("La nueva contraseña debe ser diferente de la actual")
+        }
+        user.passwordHash = passwordEncoder.encode(request.newPassword)
+        securityLogService.record(SecurityLogService.PASSWORD_CHANGED, user.id)
     }
 
     private companion object {
