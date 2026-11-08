@@ -74,7 +74,11 @@ class AccountDeletionIntegrationTest @Autowired constructor(
         mockMvc.post("/auth/login") {
             contentType = MediaType.APPLICATION_JSON
             content = """{"email":"$email","password":"123456"}"""
-        }.andExpect { status { isUnauthorized() } }
+        }.andExpect {
+            status { isUnauthorized() }
+            jsonPath("$.status") { value(401) }
+            jsonPath("$.message") { value("No existe una cuenta registrada con este correo.") }
+        }
 
         mockMvc.post("/auth/forgot-password") {
             contentType = MediaType.APPLICATION_JSON

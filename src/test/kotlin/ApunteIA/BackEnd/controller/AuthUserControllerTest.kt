@@ -82,6 +82,18 @@ class AuthUserControllerTest @Autowired constructor(
         }
     }
 
+    @Test
+    fun `login con email sin cuenta devuelve 401 y mensaje descriptivo`() {
+        mockMvc.post("/auth/login") {
+            contentType = MediaType.APPLICATION_JSON
+            content = """{"email":"inexistente-${UUID.randomUUID()}@apunteia.com","password":"123456"}"""
+        }.andExpect {
+            status { isUnauthorized() }
+            jsonPath("$.status") { value(401) }
+            jsonPath("$.message") { value("No existe una cuenta registrada con este correo.") }
+        }
+    }
+
     // ---------- POST /auth/register ----------
 
     @Test

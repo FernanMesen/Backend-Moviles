@@ -54,7 +54,7 @@ class AuthController(private val authService: AuthService) {
     @PostMapping("/forgot-password", consumes = [MediaType.APPLICATION_JSON_VALUE])
     fun forgotPassword(@Valid @RequestBody request: ForgotPasswordRequest): ResponseEntity<MessageResponse> {
         authService.requestPasswordReset(request)
-        return ResponseEntity.ok(MessageResponse("Si la cuenta existe, enviaremos un enlace de recuperación al correo registrado."))
+        return ResponseEntity.ok(MessageResponse("Si la cuenta es elegible, podrás continuar con la recuperación."))
     }
 
     @PostMapping("/reset-password", consumes = [MediaType.APPLICATION_JSON_VALUE])

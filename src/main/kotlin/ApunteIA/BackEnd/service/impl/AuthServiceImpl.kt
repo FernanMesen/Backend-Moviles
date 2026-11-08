@@ -14,6 +14,7 @@ import ApunteIA.BackEnd.entity.UserStatus
 import ApunteIA.BackEnd.entity.PasswordResetToken
 import ApunteIA.BackEnd.entity.DeletedAccountTombstone
 import ApunteIA.BackEnd.exception.ConflictException
+import ApunteIA.BackEnd.exception.EmailDeliveryException
 import ApunteIA.BackEnd.exception.BadRequestException
 import ApunteIA.BackEnd.exception.ForbiddenException
 import ApunteIA.BackEnd.exception.UnauthorizedException
@@ -30,6 +31,7 @@ import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.web.util.UriComponentsBuilder
 import java.time.LocalDateTime
 import java.time.Instant
 import java.security.MessageDigest
@@ -61,7 +63,7 @@ class AuthServiceImpl(
             ?: run {
                 securityLogService.recordIndependent(SecurityLogService.LOGIN_FAILED,
                     details = "Email no registrado: ${UserMapper.normalizeEmail(request.email)}")
-                throw UnauthorizedException(INVALID_CREDENTIALS)
+                throw UnauthorizedException(ACCOUNT_NOT_FOUND)
             }
 
         if (user.status == UserStatus.DELETED) {
@@ -144,7 +146,17 @@ class AuthServiceImpl(
             tokenHash = sha256(token),
             expiresAt = Instant.now().plusSeconds(30 * 60),
         ))
-        brevoEmailService.sendPasswordReset(user.email, "$resetUrl?token=$token")
+        val resetLink = UriComponentsBuilder.fromUriString(resetUrl)
+            .queryParam("token", token)
+            .build()
+            .encode()
+            .toUriString()
+        try {
+            brevoEmailService.sendPasswordReset(user.email, resetLink)
+        } catch (_: EmailDeliveryException) {
+            // Keep the public response indistinguishable for unknown, ineligible, and failed delivery cases.
+            resetTokenRepository.deleteAllByUser_Id(requireNotNull(user.id))
+        }
     }
 
     @Transactional
@@ -167,5 +179,6 @@ class AuthServiceImpl(
 
     private companion object {
         const val INVALID_CREDENTIALS = "Credenciales inválidas"
+        const val ACCOUNT_NOT_FOUND = "No existe una cuenta registrada con este correo."
     }
 }
