@@ -5,7 +5,6 @@ import ApunteIA.BackEnd.entity.DeletedAccountTombstone
 import ApunteIA.BackEnd.repository.*
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.security.MessageDigest
 
 @Service
 class AccountDataService(
@@ -60,7 +59,7 @@ class AccountDataService(
     @Transactional
     fun deletePermanently(userId: Long) {
         val user = userRepository.findById(userId).orElseThrow { NotFoundException("La cuenta ya no existe") }
-        val hash = emailHash(user.email)
+        val hash = DeletedAccountTombstone.emailHash(user.email)
         if (!tombstoneRepository.existsByEmailHash(hash)) {
             tombstoneRepository.save(DeletedAccountTombstone(hash))
         }
@@ -73,8 +72,4 @@ class AccountDataService(
         userRepository.delete(user)
         userRepository.flush()
     }
-
-    private fun emailHash(email: String): String = MessageDigest.getInstance("SHA-256")
-        .digest(email.trim().lowercase().toByteArray(Charsets.UTF_8))
-        .joinToString("") { "%02x".format(it) }
 }

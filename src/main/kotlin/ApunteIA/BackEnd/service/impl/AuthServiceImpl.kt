@@ -12,6 +12,7 @@ import ApunteIA.BackEnd.entity.Privilege
 import ApunteIA.BackEnd.entity.Role
 import ApunteIA.BackEnd.entity.UserStatus
 import ApunteIA.BackEnd.entity.PasswordResetToken
+import ApunteIA.BackEnd.entity.DeletedAccountTombstone
 import ApunteIA.BackEnd.exception.ConflictException
 import ApunteIA.BackEnd.exception.BadRequestException
 import ApunteIA.BackEnd.exception.ForbiddenException
@@ -21,6 +22,7 @@ import ApunteIA.BackEnd.repository.PrivilegeRepository
 import ApunteIA.BackEnd.repository.RoleRepository
 import ApunteIA.BackEnd.repository.UserRepository
 import ApunteIA.BackEnd.repository.PasswordResetTokenRepository
+import ApunteIA.BackEnd.repository.DeletedAccountTombstoneRepository
 import ApunteIA.BackEnd.security.JwtService
 import ApunteIA.BackEnd.service.AuthService
 import ApunteIA.BackEnd.service.SecurityLogService
@@ -48,6 +50,7 @@ class AuthServiceImpl(
     private val userMapper: UserMapper,
     private val securityLogService: SecurityLogService,
     private val resetTokenRepository: PasswordResetTokenRepository,
+    private val tombstoneRepository: DeletedAccountTombstoneRepository,
     private val brevoEmailService: BrevoEmailService,
     @param:Value("\${app.password-reset.url}") private val resetUrl: String,
 ) : AuthService {
@@ -92,6 +95,9 @@ class AuthServiceImpl(
     @Transactional
     override fun register(request: RegisterUserRequest): UserResponse {
         val email = UserMapper.normalizeEmail(request.email)
+        if (tombstoneRepository.existsByEmailHash(emailHash(email))) {
+            throw ConflictException("Esta cuenta fue eliminada permanentemente y no puede volver a registrarse")
+        }
         if (userRepository.existsByEmail(email)) {
             throw ConflictException("Ya existe un usuario registrado con el email $email")
         }
@@ -156,6 +162,8 @@ class AuthServiceImpl(
 
     private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
         .digest(value.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
+
+    private fun emailHash(email: String): String = DeletedAccountTombstone.emailHash(email)
 
     private companion object {
         const val INVALID_CREDENTIALS = "Credenciales inválidas"

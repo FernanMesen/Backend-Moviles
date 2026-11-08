@@ -113,20 +113,22 @@ class AccountExportRenderer(private val objectMapper: ObjectMapper) {
                     stream.beginText()
                     stream.setFont(font, 10f)
                     stream.newLineAtOffset(48f, y)
-                    stream.showText(line.replace(Regex("[^\\u0020-\\u007E\\u00A0-\\u00FF]"), "?"))
+                    stream.showText(toWinAnsi(line, font))
                     stream.endText()
                     y -= 14f
                 }
             } finally {
                 stream.close()
             }
-            return ByteArrayOutputStream().also(document::save).toByteArray()
+            val output = ByteArrayOutputStream()
+            document.save(output)
+            return output.toByteArray()
         }
     }
 
     private fun wrapLine(line: String): List<String> {
         if (line.isEmpty()) return listOf("")
-        val words = line.split(Regex("\\s+"))
+        val words = line.split(Regex("\\s+")).flatMap { it.chunked(95) }
         val result = mutableListOf<String>()
         var current = StringBuilder()
         words.forEach { word ->
@@ -135,10 +137,22 @@ class AccountExportRenderer(private val objectMapper: ObjectMapper) {
                 current = StringBuilder()
             }
             if (current.isNotEmpty()) current.append(' ')
-            current.append(word.take(95))
+            current.append(word)
         }
         if (current.isNotEmpty()) result += current.toString()
         return result
+    }
+
+    private fun toWinAnsi(value: String, font: PDType1Font): String = buildString {
+        value.forEach { character ->
+            val glyph = character.toString()
+            try {
+                font.encode(glyph)
+                append(glyph)
+            } catch (_: Exception) {
+                append('?')
+            }
+        }
     }
 
     private fun studyActivityDays(data: Map<String, Any?>): Set<java.time.LocalDate> = buildSet {

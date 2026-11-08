@@ -89,9 +89,6 @@ class IdentitySeeder(
     }
 
     private fun wasPermanentlyDeleted(email: String): Boolean {
-        val emailHash = java.security.MessageDigest.getInstance("SHA-256")
-            .digest(email.trim().lowercase().toByteArray(Charsets.UTF_8))
-            .joinToString("") { "%02x".format(it) }
-        return tombstoneRepository.existsByEmailHash(emailHash)
+        return tombstoneRepository.existsByEmailHash(ApunteIA.BackEnd.entity.DeletedAccountTombstone.emailHash(email))
     }
 }

@@ -7,6 +7,7 @@ import ApunteIA.BackEnd.entity.User
 import ApunteIA.BackEnd.repository.CourseRepository
 import ApunteIA.BackEnd.repository.NoteRepository
 import ApunteIA.BackEnd.repository.UserRepository
+import ApunteIA.BackEnd.repository.DeletedAccountTombstoneRepository
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
@@ -16,11 +17,12 @@ class NoteSeeder(
     private val noteRepository: NoteRepository,
     private val userRepository: UserRepository,
     private val courseRepository: CourseRepository,
+    private val tombstoneRepository: DeletedAccountTombstoneRepository,
 ) {
     @Transactional
     fun seed() {
         if (listOf("demo@apunteia.com", "google.user@gmail.com", "profe@apunteia.com")
-                .any { !userRepository.existsByEmail(it) }) return
+                .any { !userRepository.existsByEmail(it) && wasPermanentlyDeleted(it) }) return
         val demo = user("demo@apunteia.com")
         val google = user("google.user@gmail.com")
         val professor = user("profe@apunteia.com")
@@ -54,6 +56,10 @@ class NoteSeeder(
     private fun user(email: String): User =
         userRepository.findByEmail(email)
             ?: error("No existe el usuario requerido para las notas de ejemplo: $email")
+
+    private fun wasPermanentlyDeleted(email: String) = tombstoneRepository.existsByEmailHash(
+        ApunteIA.BackEnd.entity.DeletedAccountTombstone.emailHash(email),
+    )
 
     private fun course(code: String): Course =
         courseRepository.findByCode(code)

@@ -11,6 +11,7 @@ import ApunteIA.BackEnd.repository.AssessmentAttemptRepository
 import ApunteIA.BackEnd.repository.AssessmentRepository
 import ApunteIA.BackEnd.repository.CourseRepository
 import ApunteIA.BackEnd.repository.UserRepository
+import ApunteIA.BackEnd.repository.DeletedAccountTombstoneRepository
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -22,10 +23,12 @@ class AssessmentSeeder(
     private val attemptRepository: AssessmentAttemptRepository,
     private val courseRepository: CourseRepository,
     private val userRepository: UserRepository,
+    private val tombstoneRepository: DeletedAccountTombstoneRepository,
 ) {
     @Transactional
     fun seed() {
-        if (listOf("demo@apunteia.com", "google.user@gmail.com").any { !userRepository.existsByEmail(it) }) return
+        if (listOf("demo@apunteia.com", "google.user@gmail.com")
+                .any { !userRepository.existsByEmail(it) && wasPermanentlyDeleted(it) }) return
         val demo = user("demo@apunteia.com")
         val google = user("google.user@gmail.com")
 
@@ -101,6 +104,10 @@ class AssessmentSeeder(
     private fun user(email: String): User =
         userRepository.findByEmail(email)
             ?: error("No existe el usuario requerido para las evaluaciones: $email")
+
+    private fun wasPermanentlyDeleted(email: String) = tombstoneRepository.existsByEmailHash(
+        ApunteIA.BackEnd.entity.DeletedAccountTombstone.emailHash(email),
+    )
 
     private fun course(code: String): Course =
         courseRepository.findByCode(code)

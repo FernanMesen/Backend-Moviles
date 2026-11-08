@@ -8,6 +8,7 @@ import ApunteIA.BackEnd.repository.CourseRepository
 import ApunteIA.BackEnd.repository.EnrollmentRepository
 import ApunteIA.BackEnd.repository.SecurityLogRepository
 import ApunteIA.BackEnd.repository.UserRepository
+import ApunteIA.BackEnd.repository.DeletedAccountTombstoneRepository
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
@@ -18,11 +19,12 @@ class AcademicSeeder(
     private val enrollmentRepository: EnrollmentRepository,
     private val securityLogRepository: SecurityLogRepository,
     private val userRepository: UserRepository,
+    private val tombstoneRepository: DeletedAccountTombstoneRepository,
 ) {
     @Transactional
     fun seed() {
         if (listOf("demo@apunteia.com", "profe@apunteia.com", "bloqueado@apunteia.com", "google.user@gmail.com")
-                .any { !userRepository.existsByEmail(it) }) return
+                .any { !userRepository.existsByEmail(it) && wasPermanentlyDeleted(it) }) return
         val demo = user("demo@apunteia.com")
         val professor = user("profe@apunteia.com")
         val blocked = user("bloqueado@apunteia.com")
@@ -45,6 +47,10 @@ class AcademicSeeder(
     private fun user(email: String): User =
         userRepository.findByEmail(email)
             ?: error("No existe el usuario requerido para los datos académicos: $email")
+
+    private fun wasPermanentlyDeleted(email: String) = tombstoneRepository.existsByEmailHash(
+        ApunteIA.BackEnd.entity.DeletedAccountTombstone.emailHash(email),
+    )
 
     private fun course(code: String, name: String, description: String): Course =
         courseRepository.findByCode(code) ?: courseRepository.save(
