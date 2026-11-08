@@ -4,6 +4,9 @@ import ApunteIA.BackEnd.dto.auth.LoginRequest
 import ApunteIA.BackEnd.dto.auth.LoginResponse
 import ApunteIA.BackEnd.dto.auth.RegisterUserRequest
 import ApunteIA.BackEnd.dto.auth.ChangePasswordRequest
+import ApunteIA.BackEnd.dto.auth.ForgotPasswordRequest
+import ApunteIA.BackEnd.dto.auth.ResetPasswordRequest
+import ApunteIA.BackEnd.dto.auth.MessageResponse
 import ApunteIA.BackEnd.dto.user.UserResponse
 import ApunteIA.BackEnd.service.AuthService
 import ApunteIA.BackEnd.security.AuthenticatedUser
@@ -45,6 +48,18 @@ class AuthController(private val authService: AuthService) {
         @Valid @RequestBody request: ChangePasswordRequest,
     ): ResponseEntity<Void> {
         authService.changePassword(user.id, request)
+        return ResponseEntity.noContent().build()
+    }
+
+    @PostMapping("/forgot-password", consumes = [MediaType.APPLICATION_JSON_VALUE])
+    fun forgotPassword(@Valid @RequestBody request: ForgotPasswordRequest): ResponseEntity<MessageResponse> {
+        authService.requestPasswordReset(request)
+        return ResponseEntity.ok(MessageResponse("Si la cuenta existe, enviaremos un enlace de recuperación al correo registrado."))
+    }
+
+    @PostMapping("/reset-password", consumes = [MediaType.APPLICATION_JSON_VALUE])
+    fun resetPassword(@Valid @RequestBody request: ResetPasswordRequest): ResponseEntity<Void> {
+        authService.resetPassword(request)
         return ResponseEntity.noContent().build()
     }
 }

@@ -48,6 +48,8 @@ http
 auth
 .requestMatchers(path.matcher(HttpMethod.POST, "/auth/login")).permitAll()
 .requestMatchers(path.matcher(HttpMethod.POST, "/auth/register")).permitAll()
+.requestMatchers(path.matcher(HttpMethod.POST, "/auth/forgot-password")).permitAll()
+.requestMatchers(path.matcher(HttpMethod.POST, "/auth/reset-password")).permitAll()
 .requestMatchers(path.matcher("/h2-console/**")).permitAll()
 .requestMatchers(path.matcher("/error")).permitAll()
 .requestMatchers(path.matcher(HttpMethod.PATCH, "/users/*/status")).hasRole(Role.ADMIN)

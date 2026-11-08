@@ -91,9 +91,14 @@ postman/
 |---|---|---|---|
 | `POST` | `/auth/login` | `{ "email", "password" }` | `200` `{ token, tokenType, expiresIn, userName, userId, email, role }` · `400` · `401` · `403` |
 | `POST` | `/auth/register` | `{ "fullName", "email", "password" }` | `201` `UserResponse` + header `Location` · `400` · `409` |
+| `POST` | `/auth/forgot-password` | `{ "email" }` | `200` mensaje genérico; envía enlace si la cuenta local existe |
+| `POST` | `/auth/reset-password` | `{ "token", "newPassword" }` | `204` · `400` token inválido/vencido |
+| `PUT` | `/auth/password` | `{ "currentPassword", "newPassword" }` | `204` · `400` |
 | `GET` | `/users` | — (opcional `?status=ACTIVE\|BLOCKED\|DELETED`) | `200` `[UserResponse]` · `400` |
 | `GET` | `/users/{id}` | — | `200` `UserResponse` · `400` · `404` |
 | `PATCH` | `/users/{id}/status` | `{ "status": "BLOCKED" }` | `200` `UserResponse` · `400` · `404` · `409` |
+| `GET` | `/users/me/export` | — | `200` JSON descargable con datos de la cuenta autenticada |
+| `DELETE` | `/users/me` | — | `204`; eliminación definitiva de cuenta y datos personales asociados |
 
 **Reglas de negocio**
 
@@ -104,6 +109,8 @@ postman/
 - Login exitoso: actualiza `last_login_at`.
 - Registro: email duplicado → `409`; siempre se crea con rol `STUDENT`, privilegio `BASIC`, estado `ACTIVE`.
 - Estado: `DELETED` es un **borrado lógico** y es final (no se puede reactivar → `409`). Pedir el mismo estado que ya tiene devuelve `200` sin cambios.
+- `DELETE /users/me` elimina definitivamente la cuenta, notas, inscripciones e intentos. Los logs de seguridad se conservan anonimizados.
+- Recuperación: token aleatorio de un solo uso, expira en 30 minutos y en la base solo se guarda su hash.
 - El `token` del login es un **JWT** (ver la sección de seguridad).
 
 ## 🔐 Seguridad con JWT
@@ -112,7 +119,7 @@ Toda la API pide `Authorization: Bearer <token>`, menos estas rutas:
 
 | Acceso | Rutas |
 |---|---|
-| Pública | `POST /auth/login`, `POST /auth/register`, `/h2-console` (solo en desarrollo) |
+| Pública | `POST /auth/login`, `POST /auth/register`, `POST /auth/forgot-password`, `POST /auth/reset-password`, `/h2-console` (solo en desarrollo) |
 | Solo `ADMIN` | `PATCH /users/{id}/status`, `GET /security-logs/**` |
 | Cualquier usuario con sesión | todo lo demás |
 
@@ -284,6 +291,8 @@ gradlew.bat bootRun        # Windows
 
 - API: <http://localhost:8080>
 - Consola H2: <http://localhost:8080/h2-console> — JDBC URL `jdbc:h2:file:./data/apunteia`, usuario `sa`, sin contraseña.
+
+Para que recuperación envíe correos, configura `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_AUTH`, `SMTP_STARTTLS` y `MAIL_FROM`. Configura `PASSWORD_RESET_URL` con el deep link de la app que abre la pantalla de nueva contraseña (por defecto `apunteia://reset-password`).
 
 Prueba rápida:
 

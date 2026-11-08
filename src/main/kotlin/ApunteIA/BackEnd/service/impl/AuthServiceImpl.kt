@@ -4,11 +4,14 @@ import ApunteIA.BackEnd.dto.auth.LoginRequest
 import ApunteIA.BackEnd.dto.auth.LoginResponse
 import ApunteIA.BackEnd.dto.auth.RegisterUserRequest
 import ApunteIA.BackEnd.dto.auth.ChangePasswordRequest
+import ApunteIA.BackEnd.dto.auth.ForgotPasswordRequest
+import ApunteIA.BackEnd.dto.auth.ResetPasswordRequest
 import ApunteIA.BackEnd.dto.user.UserResponse
 import ApunteIA.BackEnd.entity.AuthProvider
 import ApunteIA.BackEnd.entity.Privilege
 import ApunteIA.BackEnd.entity.Role
 import ApunteIA.BackEnd.entity.UserStatus
+import ApunteIA.BackEnd.entity.PasswordResetToken
 import ApunteIA.BackEnd.exception.ConflictException
 import ApunteIA.BackEnd.exception.BadRequestException
 import ApunteIA.BackEnd.exception.ForbiddenException
@@ -17,13 +20,20 @@ import ApunteIA.BackEnd.mapper.UserMapper
 import ApunteIA.BackEnd.repository.PrivilegeRepository
 import ApunteIA.BackEnd.repository.RoleRepository
 import ApunteIA.BackEnd.repository.UserRepository
+import ApunteIA.BackEnd.repository.PasswordResetTokenRepository
 import ApunteIA.BackEnd.security.JwtService
 import ApunteIA.BackEnd.service.AuthService
 import ApunteIA.BackEnd.service.SecurityLogService
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.mail.SimpleMailMessage
+import org.springframework.mail.javamail.JavaMailSender
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
+import java.time.Instant
+import java.security.MessageDigest
+import java.util.UUID
 
 /**
  * Reglas: email sin importar mayúsculas · BCrypt · mismo mensaje para email inexistente y clave mala ·
@@ -39,6 +49,10 @@ class AuthServiceImpl(
     private val jwtService: JwtService,
     private val userMapper: UserMapper,
     private val securityLogService: SecurityLogService,
+    private val resetTokenRepository: PasswordResetTokenRepository,
+    private val mailSender: JavaMailSender,
+    @param:Value("\${app.password-reset.url}") private val resetUrl: String,
+    @param:Value("\${app.mail.from}") private val mailFrom: String,
 ) : AuthService {
 
     @Transactional
@@ -114,6 +128,43 @@ class AuthServiceImpl(
         user.passwordHash = passwordEncoder.encode(request.newPassword)
         securityLogService.record(SecurityLogService.PASSWORD_CHANGED, user.id)
     }
+
+    @Transactional
+    override fun requestPasswordReset(request: ForgotPasswordRequest) {
+        val user = userRepository.findByEmail(UserMapper.normalizeEmail(request.email)) ?: return
+        if (user.status != UserStatus.ACTIVE || user.authProvider != AuthProvider.LOCAL || user.passwordHash == null) return
+
+        resetTokenRepository.deleteAllByUser_Id(requireNotNull(user.id))
+        val token = "${UUID.randomUUID()}${UUID.randomUUID()}"
+        resetTokenRepository.save(PasswordResetToken(
+            user = user,
+            tokenHash = sha256(token),
+            expiresAt = Instant.now().plusSeconds(30 * 60),
+        ))
+        val message = SimpleMailMessage().apply {
+            from = mailFrom
+            setTo(user.email)
+            subject = "Recuperación de contraseña - ApunteIA"
+            text = "Usa este enlace para restablecer tu contraseña (vence en 30 minutos y solo puede usarse una vez):\n\n$resetUrl?token=$token\n\nSi no solicitaste este cambio, ignora este correo."
+        }
+        mailSender.send(message)
+    }
+
+    @Transactional
+    override fun resetPassword(request: ResetPasswordRequest) {
+        val reset = resetTokenRepository.findByTokenHash(sha256(request.token))
+            ?: throw BadRequestException("El enlace de recuperación no es válido o venció")
+        if (reset.usedAt != null || reset.expiresAt.isBefore(Instant.now()) || reset.user.status != UserStatus.ACTIVE) {
+            throw BadRequestException("El enlace de recuperación no es válido o venció")
+        }
+        reset.user.passwordHash = passwordEncoder.encode(request.newPassword)
+        reset.usedAt = Instant.now()
+        resetTokenRepository.deleteAllByUser_Id(requireNotNull(reset.user.id))
+        securityLogService.record(SecurityLogService.PASSWORD_CHANGED, reset.user.id, "Contraseña restablecida por correo")
+    }
+
+    private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
+        .digest(value.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
 
     private companion object {
         const val INVALID_CREDENTIALS = "Credenciales inválidas"

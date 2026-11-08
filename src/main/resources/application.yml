@@ -18,6 +18,14 @@ spring:
     console:
       enabled: true      # http://localhost:8080/h2-console (JDBC URL de arriba, usuario sa)
       path: /h2-console
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:1025}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${SMTP_AUTH:false}
+      mail.smtp.starttls.enable: ${SMTP_STARTTLS:false}
 
 server:
   port: 8080
@@ -35,3 +43,7 @@ app:
     secret: ${JWT_SECRET:dev-only-apunteia-jwt-secret-cambiar-en-produccion-0123456789}
     expiration-minutes: ${JWT_EXPIRATION_MINUTES:120}
     issuer: apunteia-backend
+  password-reset:
+    url: ${PASSWORD_RESET_URL:apunteia://reset-password}
+  mail:
+    from: ${MAIL_FROM:no-reply@apunteia.com}

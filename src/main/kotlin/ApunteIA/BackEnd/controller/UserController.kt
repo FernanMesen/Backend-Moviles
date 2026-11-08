@@ -3,10 +3,14 @@ package ApunteIA.BackEnd.controller
 import ApunteIA.BackEnd.dto.user.UpdateUserStatusRequest
 import ApunteIA.BackEnd.dto.user.UserResponse
 import ApunteIA.BackEnd.entity.UserStatus
+import ApunteIA.BackEnd.security.AuthenticatedUser
 import ApunteIA.BackEnd.service.UserService
+import ApunteIA.BackEnd.service.impl.AccountDataService
 import jakarta.validation.Valid
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -17,7 +21,19 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/users", produces = [MediaType.APPLICATION_JSON_VALUE])
-class UserController(private val userService: UserService) {
+class UserController(private val userService: UserService, private val accountDataService: AccountDataService) {
+
+    @GetMapping("/me/export", produces = ["application/json"])
+    fun exportMyData(@AuthenticationPrincipal user: AuthenticatedUser): ResponseEntity<Map<String, Any?>> =
+        ResponseEntity.ok()
+            .header("Content-Disposition", "attachment; filename=apunteia-datos.json")
+            .body(accountDataService.export(user.id))
+
+    @DeleteMapping("/me")
+    fun deleteMyAccount(@AuthenticationPrincipal user: AuthenticatedUser): ResponseEntity<Void> {
+        accountDataService.deletePermanently(user.id)
+        return ResponseEntity.noContent().build()
+    }
 
     /** GET /users y GET /users?status=BLOCKED → 200 | 400 */
     @GetMapping

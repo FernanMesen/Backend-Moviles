@@ -11,4 +11,5 @@ interface NoteRepository : JpaRepository<Note, Long> {
     fun findAllByCourse_Id(courseId: Long): List<Note>
     fun findAllByUser_IdAndCourse_Id(userId: Long, courseId: Long): List<Note>
     fun findAllByProcessingStatus(processingStatus: ProcessingStatus): List<Note>
+    fun deleteAllByUser_Id(userId: Long)
 }

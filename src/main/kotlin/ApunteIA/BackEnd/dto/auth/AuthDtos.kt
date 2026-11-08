@@ -58,3 +58,19 @@ data class ChangePasswordRequest(
     @field:Size(min = 6, max = 72, message = "La nueva contraseña debe tener entre 6 y 72 caracteres")
     val newPassword: String = "",
 )
+
+data class ForgotPasswordRequest(
+    @field:NotBlank(message = "El email es obligatorio")
+    @field:Email(message = "El email no tiene un formato válido")
+    val email: String = "",
+)
+
+data class ResetPasswordRequest(
+    @field:NotBlank(message = "El token es obligatorio")
+    val token: String = "",
+    @field:NotBlank(message = "La nueva contraseña es obligatoria")
+    @field:Size(min = 6, max = 72, message = "La nueva contraseña debe tener entre 6 y 72 caracteres")
+    val newPassword: String = "",
+)
+
+data class MessageResponse(val message: String)

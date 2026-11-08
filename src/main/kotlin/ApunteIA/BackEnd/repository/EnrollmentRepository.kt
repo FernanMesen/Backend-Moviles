@@ -9,4 +9,5 @@ interface EnrollmentRepository : JpaRepository<Enrollment, Long> {
     fun findAllByUser_Id(userId: Long): List<Enrollment>
     fun findAllByCourse_Id(courseId: Long): List<Enrollment>
     fun existsByUser_IdAndCourse_Id(userId: Long, courseId: Long): Boolean
+    fun deleteAllByUser_Id(userId: Long)
 }
