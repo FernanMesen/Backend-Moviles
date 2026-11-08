@@ -25,6 +25,7 @@ class AssessmentSeeder(
 ) {
     @Transactional
     fun seed() {
+        if (listOf("demo@apunteia.com", "google.user@gmail.com").any { !userRepository.existsByEmail(it) }) return
         val demo = user("demo@apunteia.com")
         val google = user("google.user@gmail.com")
 

@@ -1,9 +1,11 @@
 package ApunteIA.BackEnd.service.impl
 
 import ApunteIA.BackEnd.exception.NotFoundException
+import ApunteIA.BackEnd.entity.DeletedAccountTombstone
 import ApunteIA.BackEnd.repository.*
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.security.MessageDigest
 
 @Service
 class AccountDataService(
@@ -14,6 +16,7 @@ class AccountDataService(
     private val assessmentRepository: AssessmentRepository,
     private val securityLogRepository: SecurityLogRepository,
     private val resetTokenRepository: PasswordResetTokenRepository,
+    private val tombstoneRepository: DeletedAccountTombstoneRepository,
 ) {
     @Transactional(readOnly = true)
     fun export(userId: Long): Map<String, Any?> {
@@ -42,6 +45,11 @@ class AccountDataService(
                 "startedAt" to attempt.startedAt, "completedAt" to attempt.completedAt,
                 "durationSeconds" to attempt.durationSeconds, "answers" to attempt.userAnswers,
             ) },
+            "createdAssessments" to assessmentRepository.findAllByCreatedBy_Id(userId).map { assessment -> mapOf(
+                "id" to assessment.id, "title" to assessment.title, "description" to assessment.description,
+                "type" to assessment.type, "difficulty" to assessment.difficulty,
+                "courseId" to assessment.course?.id, "questions" to assessment.questions,
+            ) },
             "securityEvents" to securityLogRepository.findAllByUser_IdOrderByOccurredAtDesc(userId).map { log -> mapOf(
                 "id" to log.id, "eventType" to log.eventType, "details" to log.details,
                 "occurredAt" to log.occurredAt,
@@ -52,6 +60,10 @@ class AccountDataService(
     @Transactional
     fun deletePermanently(userId: Long) {
         val user = userRepository.findById(userId).orElseThrow { NotFoundException("La cuenta ya no existe") }
+        val hash = emailHash(user.email)
+        if (!tombstoneRepository.existsByEmailHash(hash)) {
+            tombstoneRepository.save(DeletedAccountTombstone(hash))
+        }
         resetTokenRepository.deleteAllByUser_Id(userId)
         attemptRepository.deleteAllByUser_Id(userId)
         noteRepository.deleteAllByUser_Id(userId)
@@ -61,4 +73,8 @@ class AccountDataService(
         userRepository.delete(user)
         userRepository.flush()
     }
+
+    private fun emailHash(email: String): String = MessageDigest.getInstance("SHA-256")
+        .digest(email.trim().lowercase().toByteArray(Charsets.UTF_8))
+        .joinToString("") { "%02x".format(it) }
 }

@@ -6,9 +6,12 @@ import ApunteIA.BackEnd.entity.UserStatus
 import ApunteIA.BackEnd.security.AuthenticatedUser
 import ApunteIA.BackEnd.service.UserService
 import ApunteIA.BackEnd.service.impl.AccountDataService
+import ApunteIA.BackEnd.service.impl.AccountExportRenderer
 import jakarta.validation.Valid
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import org.springframework.core.io.ByteArrayResource
+import org.springframework.core.io.Resource
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
@@ -21,13 +24,24 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/users", produces = [MediaType.APPLICATION_JSON_VALUE])
-class UserController(private val userService: UserService, private val accountDataService: AccountDataService) {
+class UserController(
+    private val userService: UserService,
+    private val accountDataService: AccountDataService,
+    private val accountExportRenderer: AccountExportRenderer,
+) {
 
-    @GetMapping("/me/export", produces = ["application/json"])
-    fun exportMyData(@AuthenticationPrincipal user: AuthenticatedUser): ResponseEntity<Map<String, Any?>> =
-        ResponseEntity.ok()
-            .header("Content-Disposition", "attachment; filename=apunteia-datos.json")
-            .body(accountDataService.export(user.id))
+    @GetMapping("/me/export")
+    fun exportMyData(
+        @AuthenticationPrincipal user: AuthenticatedUser,
+        @RequestParam(defaultValue = "json") format: String,
+    ): ResponseEntity<Resource> {
+        val data = accountDataService.export(user.id)
+        val (content, mediaType, extension) = accountExportRenderer.render(data, format)
+        return ResponseEntity.ok()
+            .contentType(mediaType)
+            .header("Content-Disposition", "attachment; filename=apunteia-datos.$extension")
+            .body(ByteArrayResource(content))
+    }
 
     @DeleteMapping("/me")
     fun deleteMyAccount(@AuthenticationPrincipal user: AuthenticatedUser): ResponseEntity<Void> {

@@ -12,6 +12,7 @@ interface AssessmentRepository : JpaRepository<Assessment, Long> {
     fun findByTitle(title: String): Assessment?
     fun existsByTitle(title: String): Boolean
     fun findAllByCourse_Id(courseId: Long): List<Assessment>
+    fun findAllByCreatedBy_Id(createdById: Long): List<Assessment>
 
     @Modifying
     @Query("update Assessment a set a.createdBy = null where a.createdBy.id = :userId")

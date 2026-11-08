@@ -31,6 +31,7 @@ dependencies {
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
     implementation("org.springframework.boot:spring-boot-starter-security")   // Security with JWT: filtro de autenticación + BCrypt
     implementation("org.springframework.boot:spring-boot-starter-mail")
+    implementation("org.apache.pdfbox:pdfbox:3.0.5")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
 

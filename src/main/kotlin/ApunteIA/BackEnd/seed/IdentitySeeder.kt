@@ -8,6 +8,7 @@ import ApunteIA.BackEnd.entity.UserStatus
 import ApunteIA.BackEnd.repository.PrivilegeRepository
 import ApunteIA.BackEnd.repository.RoleRepository
 import ApunteIA.BackEnd.repository.UserRepository
+import ApunteIA.BackEnd.repository.DeletedAccountTombstoneRepository
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -24,6 +25,7 @@ class IdentitySeeder(
     private val roleRepository: RoleRepository,
     private val privilegeRepository: PrivilegeRepository,
     private val userRepository: UserRepository,
+    private val tombstoneRepository: DeletedAccountTombstoneRepository,
     private val passwordEncoder: PasswordEncoder,
 ) {
 
@@ -42,7 +44,7 @@ class IdentitySeeder(
         localUser("profe@apunteia.com", "Carlos Jiménez", "Profe123!", student, manager)
         localUser("bloqueado@apunteia.com", "Usuario Bloqueado", "123456", student, basic, UserStatus.BLOCKED)
 
-        if (!userRepository.existsByEmail("google.user@gmail.com")) {
+        if (!userRepository.existsByEmail("google.user@gmail.com") && !wasPermanentlyDeleted("google.user@gmail.com")) {
             userRepository.save(
                 User(
                     email = "google.user@gmail.com",
@@ -72,7 +74,7 @@ class IdentitySeeder(
         privilege: Privilege,
         status: UserStatus = UserStatus.ACTIVE,
     ) {
-        if (userRepository.existsByEmail(email)) return
+        if (userRepository.existsByEmail(email) || wasPermanentlyDeleted(email)) return
         userRepository.save(
             User(
                 email = email,
@@ -84,5 +86,12 @@ class IdentitySeeder(
                 status = status,
             )
         )
+    }
+
+    private fun wasPermanentlyDeleted(email: String): Boolean {
+        val emailHash = java.security.MessageDigest.getInstance("SHA-256")
+            .digest(email.trim().lowercase().toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) }
+        return tombstoneRepository.existsByEmailHash(emailHash)
     }
 }

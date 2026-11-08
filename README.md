@@ -97,7 +97,7 @@ postman/
 | `GET` | `/users` | — (opcional `?status=ACTIVE\|BLOCKED\|DELETED`) | `200` `[UserResponse]` · `400` |
 | `GET` | `/users/{id}` | — | `200` `UserResponse` · `400` · `404` |
 | `PATCH` | `/users/{id}/status` | `{ "status": "BLOCKED" }` | `200` `UserResponse` · `400` · `404` · `409` |
-| `GET` | `/users/me/export` | — | `200` JSON descargable con datos de la cuenta autenticada |
+| `GET` | `/users/me/export?format=json, pdf o csv` | — (por defecto `json`) | `200` archivo descargable con datos de la cuenta autenticada · `400` formato no soportado |
 | `DELETE` | `/users/me` | — | `204`; eliminación definitiva de cuenta y datos personales asociados |
 
 **Reglas de negocio**

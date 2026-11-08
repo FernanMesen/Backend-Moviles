@@ -21,6 +21,8 @@ class AcademicSeeder(
 ) {
     @Transactional
     fun seed() {
+        if (listOf("demo@apunteia.com", "profe@apunteia.com", "bloqueado@apunteia.com", "google.user@gmail.com")
+                .any { !userRepository.existsByEmail(it) }) return
         val demo = user("demo@apunteia.com")
         val professor = user("profe@apunteia.com")
         val blocked = user("bloqueado@apunteia.com")

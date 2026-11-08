@@ -19,6 +19,8 @@ class NoteSeeder(
 ) {
     @Transactional
     fun seed() {
+        if (listOf("demo@apunteia.com", "google.user@gmail.com", "profe@apunteia.com")
+                .any { !userRepository.existsByEmail(it) }) return
         val demo = user("demo@apunteia.com")
         val google = user("google.user@gmail.com")
         val professor = user("profe@apunteia.com")
