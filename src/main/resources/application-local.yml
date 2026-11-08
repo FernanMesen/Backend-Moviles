@@ -1,0 +1,4 @@
+app:
+  auth:
+    direct-reset:
+      enabled: true

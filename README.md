@@ -74,6 +74,7 @@ src/main/kotlin/ApunteIA/BackEnd/
 
 src/main/resources/
 ├── application.yml            H2 en archivo (por defecto)
+├── application-local.yml      funciones de prueba local (perfil "local")
 └── application-postgres.yml   PostgreSQL (perfil "postgres", lo usa Docker)
 
 postman/
@@ -93,6 +94,7 @@ postman/
 | `POST` | `/auth/register` | `{ "fullName", "email", "password" }` | `201` `UserResponse` + header `Location` · `400` · `409` |
 | `POST` | `/auth/forgot-password` | `{ "email" }` | `200` mensaje genérico; envía enlace si la cuenta local existe |
 | `POST` | `/auth/reset-password` | `{ "token", "newPassword" }` | `204` · `400` token inválido/vencido |
+| `POST` | `/auth/direct-reset-password` | `{ "email", "newPassword" }` | `200` mensaje · solo perfiles `local`/`test`, H2 y cuentas ficticias sembradas |
 | `PUT` | `/auth/password` | `{ "currentPassword", "newPassword" }` | `204` · `400` |
 | `GET` | `/users` | — (opcional `?status=ACTIVE\|BLOCKED\|DELETED`) | `200` `[UserResponse]` · `400` |
 | `GET` | `/users/{id}` | — | `200` `UserResponse` · `400` · `404` |
@@ -285,8 +287,8 @@ Los carga `IdentitySeeder` al arrancar (no se duplican si ya existen):
 Requisito: **JDK 17** o superior.
 
 ```bash
-./gradlew bootRun          # macOS / Linux
-gradlew.bat bootRun        # Windows
+SPRING_PROFILES_ACTIVE=local ./gradlew bootRun  # macOS / Linux; activa el reset temporal solo en H2 local
+gradlew.bat bootRun --args="--spring.profiles.active=local"  # Windows; activa el reset temporal solo en H2 local
 ```
 
 - API: <http://localhost:8080>

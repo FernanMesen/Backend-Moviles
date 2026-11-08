@@ -4,6 +4,7 @@ import ApunteIA.BackEnd.dto.auth.LoginRequest
 import ApunteIA.BackEnd.dto.auth.LoginResponse
 import ApunteIA.BackEnd.dto.auth.RegisterUserRequest
 import ApunteIA.BackEnd.dto.auth.ChangePasswordRequest
+import ApunteIA.BackEnd.dto.auth.DirectResetPasswordRequest
 import ApunteIA.BackEnd.dto.auth.ForgotPasswordRequest
 import ApunteIA.BackEnd.dto.auth.ResetPasswordRequest
 import ApunteIA.BackEnd.dto.user.UserResponse
@@ -30,6 +31,8 @@ import ApunteIA.BackEnd.service.SecurityLogService
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.core.env.Environment
+import org.springframework.core.env.Profiles
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.util.UriComponentsBuilder
 import java.time.LocalDateTime
@@ -54,7 +57,9 @@ class AuthServiceImpl(
     private val resetTokenRepository: PasswordResetTokenRepository,
     private val tombstoneRepository: DeletedAccountTombstoneRepository,
     private val brevoEmailService: BrevoEmailService,
+    private val environment: Environment,
     @param:Value("\${app.password-reset.url}") private val resetUrl: String,
+    @param:Value("\${app.auth.direct-reset.enabled:false}") private val directResetEnabled: Boolean,
 ) : AuthService {
 
     @Transactional
@@ -172,6 +177,36 @@ class AuthServiceImpl(
         securityLogService.record(SecurityLogService.PASSWORD_CHANGED, reset.user.id, "Contraseña restablecida por correo")
     }
 
+    @Transactional
+    override fun directResetPassword(request: DirectResetPasswordRequest) {
+        val datasourceUrl = environment.getProperty("spring.datasource.url").orEmpty()
+        val localOrTestProfile = environment.acceptsProfiles(Profiles.of("local", "test"))
+        if (!directResetEnabled || !localOrTestProfile || !datasourceUrl.startsWith("jdbc:h2:") ||
+            environment.getProperty("RENDER")?.equals("true", ignoreCase = true) == true
+        ) {
+            throw ForbiddenException("La recuperación directa solo está disponible en pruebas locales")
+        }
+
+        val email = UserMapper.normalizeEmail(request.email)
+        if (email !in DIRECT_RESET_TEST_EMAILS) {
+            throw BadRequestException("La recuperación directa solo admite cuentas ficticias de prueba")
+        }
+        val user = userRepository.findByEmail(email)
+            ?: throw BadRequestException("No existe una cuenta ficticia de prueba con ese correo")
+        if (user.status != UserStatus.ACTIVE || user.authProvider != AuthProvider.LOCAL || user.passwordHash == null) {
+            throw BadRequestException("La cuenta no es elegible para la recuperación directa")
+        }
+
+        user.passwordHash = passwordEncoder.encode(request.newPassword)
+        val savedUser = userRepository.saveAndFlush(user)
+        val savedHash = savedUser.passwordHash
+            ?: throw IllegalStateException("La contraseña no se guardó correctamente")
+        if (!passwordEncoder.matches(request.newPassword, savedHash)) {
+            throw IllegalStateException("La contraseña no se guardó correctamente")
+        }
+        securityLogService.record(SecurityLogService.PASSWORD_CHANGED, savedUser.id, "Recuperación directa de cuenta ficticia")
+    }
+
     private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
         .digest(value.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
 
@@ -180,5 +215,11 @@ class AuthServiceImpl(
     private companion object {
         const val INVALID_CREDENTIALS = "Credenciales inválidas"
         const val ACCOUNT_NOT_FOUND = "No existe una cuenta registrada con este correo."
+        val DIRECT_RESET_TEST_EMAILS = setOf(
+            "demo@apunteia.com",
+            "admin@apunteia.com",
+            "profe@apunteia.com",
+            "bloqueado@apunteia.com",
+        )
     }
 }

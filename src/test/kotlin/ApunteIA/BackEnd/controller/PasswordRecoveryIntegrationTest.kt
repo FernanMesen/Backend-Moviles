@@ -13,6 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.http.MediaType
 import org.springframework.test.context.TestPropertySource
+import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.post
 import org.springframework.web.util.UriComponentsBuilder
@@ -24,7 +25,12 @@ import kotlin.test.assertTrue
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@TestPropertySource(properties = ["spring.datasource.url=jdbc:h2:mem:apunteia-password-recovery;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE"])
+@ActiveProfiles("test")
+@TestPropertySource(properties = [
+    "spring.datasource.url=jdbc:h2:mem:apunteia-password-recovery;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE",
+    "app.auth.direct-reset.enabled=true",
+    "app.jwt.secret=password-recovery-integration-test-secret-0123456789",
+])
 class PasswordRecoveryIntegrationTest @Autowired constructor(
     private val mockMvc: MockMvc,
     private val objectMapper: ObjectMapper,
@@ -106,8 +112,56 @@ class PasswordRecoveryIntegrationTest @Autowired constructor(
         assertTrue(resetTokenRepository.findAll().isEmpty(), "No debe persistir token si Brevo no aceptó el mensaje")
     }
 
+    @Test
+    fun `recuperacion directa de cuenta ficticia permite nueva clave e invalida la anterior`() {
+        mockMvc.post("/auth/direct-reset-password") {
+            contentType = MediaType.APPLICATION_JSON
+            content = """{"email":"demo@apunteia.com","newPassword":"new-demo-password"}"""
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.message") { value("Contraseña actualizada correctamente") }
+        }
+
+        mockMvc.post("/auth/login") {
+            contentType = MediaType.APPLICATION_JSON
+            content = """{"email":"demo@apunteia.com","password":"new-demo-password"}"""
+        }.andExpect { status { isOk() } }
+
+        mockMvc.post("/auth/login") {
+            contentType = MediaType.APPLICATION_JSON
+            content = """{"email":"demo@apunteia.com","password":"123456"}"""
+        }.andExpect { status { isUnauthorized() } }
+    }
+
+    @Test
+    fun `recuperacion directa rechaza cuentas que no son ficticias`() {
+        mockMvc.post("/auth/direct-reset-password") {
+            contentType = MediaType.APPLICATION_JSON
+            content = """{"email":"unknown@apunteia.com","newPassword":"new-password"}"""
+        }.andExpect { status { isBadRequest() } }
+    }
+
     private fun forgot(email: String): String = mockMvc.post("/auth/forgot-password") {
         contentType = MediaType.APPLICATION_JSON
         content = """{"email":"$email"}"""
     }.andExpect { status { isOk() } }.andReturn().response.contentAsString
+}
+
+@SpringBootTest(properties = [
+    "spring.datasource.url=jdbc:h2:mem:apunteia-direct-reset-render;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE",
+    "app.auth.direct-reset.enabled=true",
+    "app.jwt.secret=direct-reset-deployment-test-secret-0123456789",
+])
+@AutoConfigureMockMvc
+@ActiveProfiles("render")
+class DirectResetDeploymentGuardTest @Autowired constructor(
+    private val mockMvc: MockMvc,
+) {
+    @Test
+    fun `recuperacion directa se bloquea con perfil render aunque la bandera este habilitada`() {
+        mockMvc.post("/auth/direct-reset-password") {
+            contentType = MediaType.APPLICATION_JSON
+            content = """{"email":"demo@apunteia.com","newPassword":"new-demo-password"}"""
+        }.andExpect { status { isForbidden() } }
+    }
 }
