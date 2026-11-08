@@ -151,17 +151,28 @@ class PasswordRecoveryIntegrationTest @Autowired constructor(
     "spring.datasource.url=jdbc:h2:mem:apunteia-direct-reset-render;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE",
     "app.auth.direct-reset.enabled=true",
     "app.jwt.secret=direct-reset-deployment-test-secret-0123456789",
+    "RENDER=true",
 ])
 @AutoConfigureMockMvc
 @ActiveProfiles("render")
-class DirectResetDeploymentGuardTest @Autowired constructor(
+class DirectResetRenderTest @Autowired constructor(
     private val mockMvc: MockMvc,
 ) {
     @Test
-    fun `recuperacion directa se bloquea con perfil render aunque la bandera este habilitada`() {
+    fun `render permite resetear cuenta no administradora y rechaza admin`() {
         mockMvc.post("/auth/direct-reset-password") {
             contentType = MediaType.APPLICATION_JSON
             content = """{"email":"demo@apunteia.com","newPassword":"new-demo-password"}"""
+        }.andExpect { status { isOk() } }
+
+        mockMvc.post("/auth/login") {
+            contentType = MediaType.APPLICATION_JSON
+            content = """{"email":"demo@apunteia.com","password":"new-demo-password"}"""
+        }.andExpect { status { isOk() } }
+
+        mockMvc.post("/auth/direct-reset-password") {
+            contentType = MediaType.APPLICATION_JSON
+            content = """{"email":"admin@apunteia.com","newPassword":"new-admin-password"}"""
         }.andExpect { status { isForbidden() } }
     }
 }

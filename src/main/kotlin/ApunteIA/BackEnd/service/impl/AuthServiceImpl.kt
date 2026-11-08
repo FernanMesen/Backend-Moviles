@@ -181,20 +181,20 @@ class AuthServiceImpl(
     override fun directResetPassword(request: DirectResetPasswordRequest) {
         val datasourceUrl = environment.getProperty("spring.datasource.url").orEmpty()
         val localOrTestProfile = environment.acceptsProfiles(Profiles.of("local", "test"))
-        if (!directResetEnabled || !localOrTestProfile || !datasourceUrl.startsWith("jdbc:h2:") ||
-            environment.getProperty("RENDER")?.equals("true", ignoreCase = true) == true
-        ) {
-            throw ForbiddenException("La recuperación directa solo está disponible en pruebas locales")
+        val localH2Test = localOrTestProfile && datasourceUrl.startsWith("jdbc:h2:")
+        val renderDeployment = environment.getProperty("RENDER")?.equals("true", ignoreCase = true) == true
+        if (!localH2Test && !(directResetEnabled && renderDeployment)) {
+            throw ForbiddenException("La recuperación directa no está habilitada en este entorno")
         }
 
         val email = UserMapper.normalizeEmail(request.email)
-        if (email !in DIRECT_RESET_TEST_EMAILS) {
-            throw BadRequestException("La recuperación directa solo admite cuentas ficticias de prueba")
-        }
         val user = userRepository.findByEmail(email)
-            ?: throw BadRequestException("No existe una cuenta ficticia de prueba con ese correo")
+            ?: throw BadRequestException("No existe una cuenta con ese correo")
         if (user.status != UserStatus.ACTIVE || user.authProvider != AuthProvider.LOCAL || user.passwordHash == null) {
             throw BadRequestException("La cuenta no es elegible para la recuperación directa")
+        }
+        if (user.role.name == Role.ADMIN) {
+            throw ForbiddenException("La cuenta administradora no puede usar la recuperación directa")
         }
 
         user.passwordHash = passwordEncoder.encode(request.newPassword)
@@ -215,11 +215,5 @@ class AuthServiceImpl(
     private companion object {
         const val INVALID_CREDENTIALS = "Credenciales inválidas"
         const val ACCOUNT_NOT_FOUND = "No existe una cuenta registrada con este correo."
-        val DIRECT_RESET_TEST_EMAILS = setOf(
-            "demo@apunteia.com",
-            "admin@apunteia.com",
-            "profe@apunteia.com",
-            "bloqueado@apunteia.com",
-        )
     }
 }

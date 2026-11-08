@@ -94,7 +94,7 @@ postman/
 | `POST` | `/auth/register` | `{ "fullName", "email", "password" }` | `201` `UserResponse` + header `Location` · `400` · `409` |
 | `POST` | `/auth/forgot-password` | `{ "email" }` | `200` mensaje genérico; envía enlace si la cuenta local existe |
 | `POST` | `/auth/reset-password` | `{ "token", "newPassword" }` | `204` · `400` token inválido/vencido |
-| `POST` | `/auth/direct-reset-password` | `{ "email", "newPassword" }` | `200` mensaje · solo perfiles `local`/`test`, H2 y cuentas ficticias sembradas |
+| `POST` | `/auth/direct-reset-password` | `{ "email", "newPassword" }` | `200` mensaje · local/test con H2; en Render requiere `APP_AUTH_DIRECT_RESET_ENABLED=true` y rechaza cuentas ADMIN |
 | `PUT` | `/auth/password` | `{ "currentPassword", "newPassword" }` | `204` · `400` |
 | `GET` | `/users` | — (opcional `?status=ACTIVE\|BLOCKED\|DELETED`) | `200` `[UserResponse]` · `400` |
 | `GET` | `/users/{id}` | — | `200` `UserResponse` · `400` · `404` |
@@ -290,6 +290,8 @@ Requisito: **JDK 17** o superior.
 SPRING_PROFILES_ACTIVE=local ./gradlew bootRun  # macOS / Linux; activa el reset temporal solo en H2 local
 gradlew.bat bootRun --args="--spring.profiles.active=local"  # Windows; activa el reset temporal solo en H2 local
 ```
+
+En Render, configura `APP_AUTH_DIRECT_RESET_ENABLED=true` para habilitar temporalmente el endpoint. Cualquier cuenta local activa puede cambiar su contraseña conociendo el correo, excepto las cuentas con rol `ADMIN`; esto no verifica la identidad del solicitante.
 
 - API: <http://localhost:8080>
 - Consola H2: <http://localhost:8080/h2-console> — JDBC URL `jdbc:h2:file:./data/apunteia`, usuario `sa`, sin contraseña.
