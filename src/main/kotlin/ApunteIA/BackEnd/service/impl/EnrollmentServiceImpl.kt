@@ -6,6 +6,8 @@ import ApunteIA.BackEnd.entity.Enrollment
 import ApunteIA.BackEnd.exception.BadRequestException
 import ApunteIA.BackEnd.exception.ConflictException
 import ApunteIA.BackEnd.exception.NotFoundException
+import ApunteIA.BackEnd.exception.ForbiddenException
+import ApunteIA.BackEnd.security.AuthenticatedUser
 import ApunteIA.BackEnd.mapper.EnrollmentMapper
 import ApunteIA.BackEnd.repository.CourseRepository
 import ApunteIA.BackEnd.repository.EnrollmentRepository
@@ -39,12 +41,40 @@ class EnrollmentServiceImpl(
     override fun findById(id: Long): EnrollmentResponse = enrollmentMapper.toResponse(findEnrollmentOrThrow(id))
 
     @Transactional
+    override fun create(request: CreateEnrollmentRequest, requester: AuthenticatedUser): EnrollmentResponse {
+        val userId = request.userId ?: throw BadRequestException("El usuario es obligatorio")
+        val courseId = request.courseId ?: throw BadRequestException("El curso es obligatorio")
+        if (!requester.isAdmin && userId != requester.id) {
+            throw ForbiddenException("Solo puedes matricularte a ti mismo")
+        }
+        return createValidated(userId, courseId)
+    }
+
+    @Transactional
+    override fun delete(id: Long, requester: AuthenticatedUser) {
+        val enrollment = findEnrollmentOrThrow(id)
+        if (!requester.isAdmin && enrollment.user.id != requester.id) {
+            throw ForbiddenException("Solo puedes borrar tus propias inscripciones")
+        }
+        enrollmentRepository.delete(enrollment)
+        enrollmentRepository.flush()
+    }
+
+    // Sobrecargas heredadas para compatibilidad con pruebas directas.
     override fun create(request: CreateEnrollmentRequest): EnrollmentResponse {
         val userId = request.userId ?: throw BadRequestException("El usuario es obligatorio")
         val courseId = request.courseId ?: throw BadRequestException("El curso es obligatorio")
+        return createValidated(userId, courseId)
+    }
+
+    override fun delete(id: Long) {
+        enrollmentRepository.delete(findEnrollmentOrThrow(id))
+        enrollmentRepository.flush()
+    }
+
+    private fun createValidated(userId: Long, courseId: Long): EnrollmentResponse {
         if (userId <= 0) throw BadRequestException("El id del usuario debe ser positivo")
         if (courseId <= 0) throw BadRequestException("El id del curso debe ser positivo")
-
         val user = userRepository.findById(userId)
             .orElseThrow { NotFoundException("No existe un usuario con id $userId") }
         val course = courseRepository.findById(courseId)
@@ -54,12 +84,6 @@ class EnrollmentServiceImpl(
         }
         val enrollment = Enrollment(user = user, course = course)
         return enrollmentMapper.toResponse(enrollmentRepository.saveAndFlush(enrollment))
-    }
-
-    @Transactional
-    override fun delete(id: Long) {
-        enrollmentRepository.delete(findEnrollmentOrThrow(id))
-        enrollmentRepository.flush()
     }
 
     private fun findEnrollmentOrThrow(id: Long) = enrollmentRepository.findById(id)

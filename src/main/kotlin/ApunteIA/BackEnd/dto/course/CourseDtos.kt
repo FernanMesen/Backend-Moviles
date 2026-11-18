@@ -42,4 +42,7 @@ data class CourseResponse(
     val name: String,
     val description: String?,
     val syllabus: String? = null,
+    val createdById: Long? = null,
+    val createdByName: String? = null,
+    val studentCount: Int = 0,
 )

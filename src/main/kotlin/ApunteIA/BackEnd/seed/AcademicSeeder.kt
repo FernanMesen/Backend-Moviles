@@ -34,6 +34,13 @@ class AcademicSeeder(
         val databases = course("EIF412", "Bases de datos", "Modelado relacional y consultas")
         val distributed = course("EIF413", "Programación distribuida", "Conceptos y sistemas distribuidos")
 
+        listOf(backend, databases, distributed).forEach { sampleCourse ->
+            if (sampleCourse.createdBy == null) {
+                sampleCourse.createdBy = professor
+                courseRepository.save(sampleCourse)
+            }
+        }
+
         enroll(demo, backend)
         enroll(demo, databases)
         enroll(google, backend)

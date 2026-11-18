@@ -174,7 +174,7 @@ class AcademicControllersTest @Autowired constructor(
             content = """{"code":" $code ","name":" Nuevo ","description":" Descripción "}"""
         }.andExpect {
             status { isCreated() }
-            jsonPath("$.code") { value(code) }
+            jsonPath("$.code") { value(code.uppercase()) }
             jsonPath("$.name") { value("Nuevo") }
             jsonPath("$.description") { value("Descripción") }
         }.andReturn()

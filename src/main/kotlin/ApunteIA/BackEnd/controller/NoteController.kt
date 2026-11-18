@@ -6,6 +6,8 @@ import ApunteIA.BackEnd.dto.note.UpdateNoteRequest
 import ApunteIA.BackEnd.dto.note.UpdateNoteStatusRequest
 import ApunteIA.BackEnd.entity.ProcessingStatus
 import ApunteIA.BackEnd.service.NoteService
+import ApunteIA.BackEnd.security.AuthenticatedUser
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import jakarta.validation.Valid
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -40,8 +42,11 @@ class NoteController(private val noteService: NoteService) {
 
     /** POST /notes → 201 + Location: /notes/{id} | 400 | 404 */
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE])
-    fun create(@Valid @RequestBody request: CreateNoteRequest): ResponseEntity<NoteResponse> {
-        val created = noteService.create(request)
+    fun create(
+        @Valid @RequestBody request: CreateNoteRequest,
+        @AuthenticationPrincipal requester: AuthenticatedUser?,
+    ): ResponseEntity<NoteResponse> {
+        val created = if (requester != null) noteService.create(request, requester) else noteService.create(request)
         val location = ServletUriComponentsBuilder.fromCurrentContextPath()
             .path("/notes/{id}")
             .buildAndExpand(created.id)
@@ -54,7 +59,8 @@ class NoteController(private val noteService: NoteService) {
     fun update(
         @PathVariable id: Long,
         @Valid @RequestBody request: UpdateNoteRequest,
-    ): ResponseEntity<NoteResponse> = ResponseEntity.ok(noteService.update(id, request))
+        @AuthenticationPrincipal requester: AuthenticatedUser?,
+    ): ResponseEntity<NoteResponse> = if (requester != null) ResponseEntity.ok(noteService.update(id, request, requester)) else ResponseEntity.ok(noteService.update(id, request))
 
     /** PATCH /notes/{id}/status → 200 | 400 | 404 | 409 */
     @PatchMapping("/{id}/status", consumes = [MediaType.APPLICATION_JSON_VALUE])

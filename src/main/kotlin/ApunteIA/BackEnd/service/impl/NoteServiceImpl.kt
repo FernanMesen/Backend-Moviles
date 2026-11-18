@@ -11,6 +11,9 @@ import ApunteIA.BackEnd.exception.ConflictException
 import ApunteIA.BackEnd.exception.AiProviderException
 import ApunteIA.BackEnd.exception.AiUnavailableException
 import ApunteIA.BackEnd.exception.NotFoundException
+import ApunteIA.BackEnd.exception.ForbiddenException
+import ApunteIA.BackEnd.repository.EnrollmentRepository
+import ApunteIA.BackEnd.security.AuthenticatedUser
 import ApunteIA.BackEnd.mapper.NoteMapper
 import ApunteIA.BackEnd.repository.CourseRepository
 import ApunteIA.BackEnd.repository.NoteRepository
@@ -27,6 +30,7 @@ class NoteServiceImpl(
     private val noteRepository: NoteRepository,
     private val userRepository: UserRepository,
     private val courseRepository: CourseRepository,
+    private val enrollmentRepository: EnrollmentRepository,
     private val noteMapper: NoteMapper,
     private val aiClient: AiClient,
     private val noteProcessingStateService: NoteProcessingStateService,
@@ -47,16 +51,44 @@ class NoteServiceImpl(
     override fun findById(id: Long): NoteResponse = noteMapper.toResponse(findNoteOrThrow(id))
 
     @Transactional
-    override fun create(request: CreateNoteRequest): NoteResponse {
+    override fun create(request: CreateNoteRequest, requester: AuthenticatedUser): NoteResponse {
+        if (!requester.isAdmin && request.userId != requester.id) {
+            throw ForbiddenException("No puedes crear notas como otro usuario")
+        }
         val (user, course) = findRelations(request.userId, request.courseId)
+        checkEnrollment(user, course)
         val note = noteMapper.toEntity(request, user, course)
         return noteMapper.toResponse(noteRepository.saveAndFlush(note))
     }
 
     @Transactional
+    override fun update(id: Long, request: UpdateNoteRequest, requester: AuthenticatedUser): NoteResponse {
+        val note = findNoteOrThrow(id)
+        if (!requester.isAdmin && (request.userId != requester.id || note.user.id != requester.id)) {
+            throw ForbiddenException("Solo puedes modificar tus propias notas")
+        }
+        val (user, course) = findRelations(request.userId, request.courseId)
+        checkEnrollment(user, course)
+        note.title = request.title.trim()
+        note.content = request.content.trim()
+        request.summary?.let { note.summary = it.trim().ifBlank { null } }
+        request.noteDate?.let { note.noteDate = it }
+        note.user = user
+        note.course = course
+        return noteMapper.toResponse(noteRepository.saveAndFlush(note))
+    }
+
+    override fun create(request: CreateNoteRequest): NoteResponse {
+        val (user, course) = findRelations(request.userId, request.courseId)
+        checkEnrollment(user, course)
+        val note = noteMapper.toEntity(request, user, course)
+        return noteMapper.toResponse(noteRepository.saveAndFlush(note))
+    }
+
     override fun update(id: Long, request: UpdateNoteRequest): NoteResponse {
         val note = findNoteOrThrow(id)
         val (user, course) = findRelations(request.userId, request.courseId)
+        checkEnrollment(user, course)
         note.title = request.title.trim()
         note.content = request.content.trim()
         request.summary?.let { note.summary = it.trim().ifBlank { null } }
@@ -113,7 +145,13 @@ class NoteServiceImpl(
         userRepository.findById(requireNotNull(userId))
             .orElseThrow { NotFoundException("No existe un usuario con id $userId") } to
             courseRepository.findById(requireNotNull(courseId))
-                .orElseThrow { NotFoundException("No existe un curso con id $courseId") }
+                .orElseThrow { NotFoundException("El curso con id $courseId no existe en el servidor") }
+
+    private fun checkEnrollment(user: ApunteIA.BackEnd.entity.User, course: ApunteIA.BackEnd.entity.Course) {
+        if (!enrollmentRepository.existsByUser_IdAndCourse_Id(user.id!!, course.id!!)) {
+            throw ConflictException("No estás matriculado en el curso ${course.code}. Únete al curso antes de guardar notas.")
+        }
+    }
 
     internal companion object {
         const val SYSTEM_PROMPT = """You are a study assistant. Summarize the source notes in at most 8 clear bullet points,

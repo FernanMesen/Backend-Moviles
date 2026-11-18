@@ -8,6 +8,8 @@ import ApunteIA.BackEnd.dto.enrollment.EnrollUserRequest
 import ApunteIA.BackEnd.dto.enrollment.EnrollmentResponse
 import ApunteIA.BackEnd.service.CourseService
 import ApunteIA.BackEnd.service.EnrollmentService
+import ApunteIA.BackEnd.security.AuthenticatedUser
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import jakarta.validation.Valid
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -33,8 +35,9 @@ class CourseController(
     fun enroll(
         @PathVariable id: Long,
         @Valid @RequestBody request: EnrollUserRequest,
+        @AuthenticationPrincipal requester: AuthenticatedUser?,
     ): ResponseEntity<EnrollmentResponse> {
-        val created = enrollmentService.create(CreateEnrollmentRequest(userId = request.userId, courseId = id))
+        val created = if (requester != null) enrollmentService.create(CreateEnrollmentRequest(userId = request.userId, courseId = id), requester) else enrollmentService.create(CreateEnrollmentRequest(userId = request.userId, courseId = id))
         val location = ServletUriComponentsBuilder.fromCurrentContextPath()
             .path("/enrollments/{id}")
             .buildAndExpand(created.id)
@@ -53,8 +56,11 @@ class CourseController(
 
     /** POST /courses → 201 + Location: /courses/{id} | 400 | 409 */
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE])
-    fun create(@Valid @RequestBody request: CreateCourseRequest): ResponseEntity<CourseResponse> {
-        val created = courseService.create(request)
+    fun create(
+        @Valid @RequestBody request: CreateCourseRequest,
+        @AuthenticationPrincipal requester: AuthenticatedUser?,
+    ): ResponseEntity<CourseResponse> {
+        val created = if (requester != null) courseService.create(request, requester) else courseService.create(request)
         val location = ServletUriComponentsBuilder.fromCurrentContextPath()
             .path("/courses/{id}")
             .buildAndExpand(created.id)
@@ -67,12 +73,16 @@ class CourseController(
     fun update(
         @PathVariable id: Long,
         @Valid @RequestBody request: UpdateCourseRequest,
-    ): ResponseEntity<CourseResponse> = ResponseEntity.ok(courseService.update(id, request))
+        @AuthenticationPrincipal requester: AuthenticatedUser?,
+    ): ResponseEntity<CourseResponse> = if (requester != null) ResponseEntity.ok(courseService.update(id, request, requester)) else ResponseEntity.ok(courseService.update(id, request))
 
     /** DELETE /courses/{id} → 204 | 404 | 409 */
     @DeleteMapping("/{id}")
-    fun delete(@PathVariable id: Long): ResponseEntity<Void> {
-        courseService.delete(id)
+    fun delete(
+        @PathVariable id: Long,
+        @AuthenticationPrincipal requester: AuthenticatedUser?,
+    ): ResponseEntity<Void> {
+        if (requester != null) courseService.delete(id, requester) else courseService.delete(id)
         return ResponseEntity.noContent().build()
     }
 }

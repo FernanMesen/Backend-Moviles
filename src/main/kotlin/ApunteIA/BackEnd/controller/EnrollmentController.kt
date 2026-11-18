@@ -3,6 +3,8 @@ package ApunteIA.BackEnd.controller
 import ApunteIA.BackEnd.dto.enrollment.CreateEnrollmentRequest
 import ApunteIA.BackEnd.dto.enrollment.EnrollmentResponse
 import ApunteIA.BackEnd.service.EnrollmentService
+import ApunteIA.BackEnd.security.AuthenticatedUser
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import jakarta.validation.Valid
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -34,8 +36,11 @@ class EnrollmentController(private val enrollmentService: EnrollmentService) {
 
     /** POST /enrollments → 201 + Location: /enrollments/{id} | 400 | 404 | 409 */
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE])
-    fun create(@Valid @RequestBody request: CreateEnrollmentRequest): ResponseEntity<EnrollmentResponse> {
-        val created = enrollmentService.create(request)
+    fun create(
+        @Valid @RequestBody request: CreateEnrollmentRequest,
+        @AuthenticationPrincipal requester: AuthenticatedUser?,
+    ): ResponseEntity<EnrollmentResponse> {
+        val created = if (requester != null) enrollmentService.create(request, requester) else enrollmentService.create(request)
         val location = ServletUriComponentsBuilder.fromCurrentContextPath()
             .path("/enrollments/{id}")
             .buildAndExpand(created.id)
@@ -45,8 +50,11 @@ class EnrollmentController(private val enrollmentService: EnrollmentService) {
 
     /** DELETE /enrollments/{id} → 204 | 404 */
     @DeleteMapping("/{id}")
-    fun delete(@PathVariable id: Long): ResponseEntity<Void> {
-        enrollmentService.delete(id)
+    fun delete(
+        @PathVariable id: Long,
+        @AuthenticationPrincipal requester: AuthenticatedUser?,
+    ): ResponseEntity<Void> {
+        if (requester != null) enrollmentService.delete(id, requester) else enrollmentService.delete(id)
         return ResponseEntity.noContent().build()
     }
 }

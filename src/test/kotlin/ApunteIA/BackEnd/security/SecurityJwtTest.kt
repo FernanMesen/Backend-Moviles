@@ -168,15 +168,15 @@ class SecurityJwtTest @Autowired constructor(
     }
 
     @Test
-    fun `solo ADMIN administra cursos con syllabus e inscripciones`() {
+    fun `STUDENT crea cursos y ADMIN administra cursos con syllabus e inscripciones`() {
         val student = studentToken()
-        val code = "ADM-${UUID.randomUUID()}"
+        val code = "STU-${UUID.randomUUID()}"
 
         mockMvc.post("/courses") {
             header(HttpHeaders.AUTHORIZATION, "Bearer $student")
             contentType = MediaType.APPLICATION_JSON
             content = """{"code":"$code","name":"Curso admin"}"""
-        }.andExpect { status { isForbidden() } }
+        }.andExpect { status { isCreated() } }
 
         val loginBody = mockMvc.post("/auth/login") {
             contentType = MediaType.APPLICATION_JSON
@@ -186,11 +186,12 @@ class SecurityJwtTest @Autowired constructor(
             jsonPath("$.role") { value("ADMIN") }
         }.andReturn().response.contentAsString
         val admin = objectMapper.readTree(loginBody)["token"].asText()
+        val adminCode = "ADM-${UUID.randomUUID()}"
 
         val courseBody = mockMvc.post("/courses") {
             header(HttpHeaders.AUTHORIZATION, "Bearer $admin")
             contentType = MediaType.APPLICATION_JSON
-            content = """{"code":"$code","name":"Curso admin","syllabus":"Tema 1\nTema 2"}"""
+            content = """{"code":"$adminCode","name":"Curso admin","syllabus":"Tema 1\nTema 2"}"""
         }.andExpect {
             status { isCreated() }
             jsonPath("$.syllabus") { value("Tema 1\nTema 2") }
@@ -200,7 +201,7 @@ class SecurityJwtTest @Autowired constructor(
         mockMvc.put("/courses/$courseId") {
             header(HttpHeaders.AUTHORIZATION, "Bearer $admin")
             contentType = MediaType.APPLICATION_JSON
-            content = """{"code":"$code","name":"Curso actualizado","syllabus":"Tema actualizado"}"""
+            content = """{"code":"$adminCode","name":"Curso actualizado","syllabus":"Tema actualizado"}"""
         }.andExpect {
             status { isOk() }
             jsonPath("$.syllabus") { value("Tema actualizado") }
@@ -208,7 +209,7 @@ class SecurityJwtTest @Autowired constructor(
         mockMvc.put("/courses/$courseId") {
             header(HttpHeaders.AUTHORIZATION, "Bearer $student")
             contentType = MediaType.APPLICATION_JSON
-            content = """{"code":"$code","name":"Curso no autorizado"}"""
+            content = """{"code":"$adminCode","name":"Curso no autorizado"}"""
         }.andExpect { status { isForbidden() } }
 
         val enrollmentBody = mockMvc.post("/courses/$courseId/enrollments") {
@@ -226,9 +227,6 @@ class SecurityJwtTest @Autowired constructor(
         }
         mockMvc.delete("/enrollments/$enrollmentId") {
             header(HttpHeaders.AUTHORIZATION, "Bearer $student")
-        }.andExpect { status { isForbidden() } }
-        mockMvc.delete("/enrollments/$enrollmentId") {
-            header(HttpHeaders.AUTHORIZATION, "Bearer $admin")
         }.andExpect { status { isNoContent() } }
         mockMvc.delete("/courses/$courseId") {
             header(HttpHeaders.AUTHORIZATION, "Bearer $admin")

@@ -13,6 +13,7 @@ class AccountDataService(
     private val enrollmentRepository: EnrollmentRepository,
     private val attemptRepository: AssessmentAttemptRepository,
     private val assessmentRepository: AssessmentRepository,
+    private val courseRepository: CourseRepository,
     private val securityLogRepository: SecurityLogRepository,
     private val resetTokenRepository: PasswordResetTokenRepository,
     private val tombstoneRepository: DeletedAccountTombstoneRepository,
@@ -68,6 +69,7 @@ class AccountDataService(
         noteRepository.deleteAllByUser_Id(userId)
         enrollmentRepository.deleteAllByUser_Id(userId)
         assessmentRepository.clearCreator(userId)
+        courseRepository.clearCreator(userId)
         securityLogRepository.anonymizeUser(userId)
         userRepository.delete(user)
         userRepository.flush()
